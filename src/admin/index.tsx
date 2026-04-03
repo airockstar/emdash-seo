@@ -5,20 +5,16 @@ import { ContentAnalysisPage } from "./pages/content-analysis.js";
 import { SeoStatusWidget } from "./widgets/seo-status.js";
 import { SeoScoreWidget } from "./widgets/seo-score.js";
 
-// Inject global styles once
-let stylesInjected = false;
+// Inject global styles once — never remove (persist for plugin lifetime)
+let styleRef: HTMLStyleElement | null = null;
 function useGlobalStyles() {
   useEffect(() => {
-    if (stylesInjected) return;
+    if (styleRef) return;
     const style = document.createElement("style");
     style.textContent = globalStyles;
     style.setAttribute("data-seo-plugin", "");
     document.head.appendChild(style);
-    stylesInjected = true;
-    return () => {
-      style.remove();
-      stylesInjected = false;
-    };
+    styleRef = style;
   }, []);
 }
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { SerpPreview } from "../components/serp-preview.js";
 import { CharacterCounter } from "../components/character-counter.js";
+import { colors } from "../tokens.js";
 
 interface Override {
   id: string;
@@ -27,6 +28,7 @@ export function SeoOverridesPage({ callRoute, siteUrl }: SeoOverridesPageProps) 
   const [form, setForm] = useState({ title: "", description: "", focusKeyword: "", robots: "", canonical: "" });
   const [filter, setFilter] = useState("");
   const [loading, setLoading] = useState(true);
+  const lastFilterRef = useRef("");
   const editRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { loadOverrides(); }, []);
@@ -67,14 +69,18 @@ export function SeoOverridesPage({ callRoute, siteUrl }: SeoOverridesPageProps) 
   }
 
   function handleFilterKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter") loadOverrides();
+    if (e.key === "Enter") { lastFilterRef.current = filter; loadOverrides(); }
+  }
+
+  function handleFilterBlur() {
+    if (filter !== lastFilterRef.current) { lastFilterRef.current = filter; loadOverrides(); }
   }
 
   return (
     <div className="seo-plugin">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <h2 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 600 }}>SEO Overrides</h2>
-        <span style={{ fontSize: "0.8125rem", color: "#6b7280" }}>{overrides.length} items</span>
+        <span style={{ fontSize: "0.8125rem", color: colors.textSecondary }}>{overrides.length} items</span>
       </div>
 
       <div style={{ marginBottom: 16 }}>
@@ -85,7 +91,7 @@ export function SeoOverridesPage({ callRoute, siteUrl }: SeoOverridesPageProps) 
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           onKeyDown={handleFilterKeyDown}
-          onBlur={() => loadOverrides()}
+          onBlur={handleFilterBlur}
           aria-label="Filter overrides by collection"
         />
       </div>
@@ -114,9 +120,9 @@ export function SeoOverridesPage({ callRoute, siteUrl }: SeoOverridesPageProps) 
                 <tr key={o.id}>
                   <td style={{ fontWeight: 500 }}>{o.id}</td>
                   <td><span className="seo-badge seo-badge-success">{o.data.collection ?? "—"}</span></td>
-                  <td>{o.data.title || <em style={{ color: "#9ca3af" }}>Not set</em>}</td>
+                  <td>{o.data.title || <em style={{ color: colors.textTertiary }}>Not set</em>}</td>
                   <td style={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {o.data.description?.slice(0, 60) || <em style={{ color: "#9ca3af" }}>Not set</em>}
+                    {o.data.description?.slice(0, 60) || <em style={{ color: colors.textTertiary }}>Not set</em>}
                   </td>
                   <td>
                     <div style={{ display: "flex", gap: 4 }}>
@@ -137,7 +143,7 @@ export function SeoOverridesPage({ callRoute, siteUrl }: SeoOverridesPageProps) 
 
       {editing && (
         <div ref={editRef} className="seo-card seo-fade-in" style={{ marginTop: 24 }}>
-          <div style={{ padding: "12px 16px", borderBottom: "1px solid #f3f4f6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ padding: "12px 16px", borderBottom: `1px solid ${colors.borderSubtle}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <h3 style={{ margin: 0, fontSize: "0.875rem", fontWeight: 600 }}>Editing: {editing}</h3>
             <button className="seo-btn seo-btn-secondary seo-btn-sm" onClick={() => setEditing(null)}>Close</button>
           </div>
@@ -177,7 +183,7 @@ export function SeoOverridesPage({ callRoute, siteUrl }: SeoOverridesPageProps) 
             </div>
 
             <div style={{ marginTop: 24 }}>
-              <h4 style={{ fontSize: "0.8125rem", fontWeight: 600, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 12 }}>
+              <h4 style={{ fontSize: "0.8125rem", fontWeight: 600, color: colors.textSecondary, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 12 }}>
                 Search Preview
               </h4>
               <SerpPreview title={form.title} url={form.canonical || siteUrl} description={form.description} />

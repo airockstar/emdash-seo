@@ -21,7 +21,7 @@ export function ScoreBadge({ score, size = 60, showLabel = false }: ScoreBadgePr
         width={size} height={size} viewBox={`0 0 ${size} ${size}`}
         role="img" aria-label={`SEO score: ${clamped} out of 100`}
       >
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#f3f4f6" strokeWidth={4} />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={colors.bgTertiary} strokeWidth={4} />
         <circle
           cx={size / 2} cy={size / 2} r={radius}
           fill="none" stroke={color} strokeWidth={4}

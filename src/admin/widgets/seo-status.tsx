@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { colors } from "../tokens.js";
 
 interface StatusData {
   total: number;
@@ -23,7 +24,7 @@ export function SeoStatusWidget({ callRoute }: SeoStatusWidgetProps) {
       .catch(() => setError(true));
   }, []);
 
-  if (error) return <div style={{ color: "#991b1b", fontSize: "0.8125rem" }}>Failed to load status.</div>;
+  if (error) return <div style={{ color: colors.errorText, fontSize: "0.8125rem" }}>Failed to load status.</div>;
 
   if (!data) {
     return (
@@ -44,11 +45,11 @@ export function SeoStatusWidget({ callRoute }: SeoStatusWidgetProps) {
 
   return (
     <div>
-      <div style={{ fontSize: "0.75rem", color: "#6b7280", marginBottom: 12 }}>
+      <div style={{ fontSize: "0.75rem", color: colors.textSecondary, marginBottom: 12 }}>
         {data.total} content items total
       </div>
       {items.map((item) => (
-        <div key={item.label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #f3f4f6" }}>
+        <div key={item.label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${colors.borderSubtle}` }}>
           <span style={{ fontSize: "0.8125rem", color: "#374151" }}>{item.label}</span>
           <span className={`seo-badge ${item.bad ? "seo-badge-error" : "seo-badge-success"}`}>
             {item.count}

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { ScoreBadge } from "../components/score-badge.js";
+import { colors } from "../tokens.js";
 import type { SeoCheck } from "../../types.js";
 
 export interface ContentAnalysisPageProps {
@@ -63,31 +64,31 @@ export function ContentAnalysisPage({ callRoute }: ContentAnalysisPageProps) {
       </div>
 
       {error && (
-        <div className="seo-fade-in" style={{ padding: "12px 16px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "0.375rem", color: "#991b1b", marginBottom: 16, fontSize: "0.8125rem" }}>
+        <div className="seo-fade-in" style={{ padding: "12px 16px", background: colors.errorBg, border: `1px solid ${colors.error}`, borderRadius: "0.375rem", color: colors.errorText, marginBottom: 16, fontSize: "0.8125rem" }}>
           {error}
         </div>
       )}
 
       {result && (
         <div className="seo-card seo-fade-in">
-          <div style={{ padding: "20px 16px", display: "flex", alignItems: "center", gap: 20, borderBottom: "1px solid #f3f4f6" }}>
+          <div style={{ padding: "20px 16px", display: "flex", alignItems: "center", gap: 20, borderBottom: `1px solid ${colors.borderSubtle}` }}>
             <ScoreBadge score={result.score} size={72} showLabel />
             <div>
-              <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#111827" }}>{result.score}/100</div>
-              <div style={{ fontSize: "0.8125rem", color: "#6b7280" }}>{result.checks.length} checks performed</div>
+              <div style={{ fontSize: "1.5rem", fontWeight: 700, color: colors.textPrimary }}>{result.score}/100</div>
+              <div style={{ fontSize: "0.8125rem", color: colors.textSecondary }}>{result.checks.length} checks performed</div>
             </div>
           </div>
           <div className="seo-card-body" style={{ padding: 0 }}>
             {result.checks.map((check) => {
               const badgeClass = check.status === "pass" ? "seo-badge-success" : check.status === "warn" ? "seo-badge-warning" : "seo-badge-error";
               return (
-                <div key={check.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", borderBottom: "1px solid #f3f4f6" }}>
+                <div key={check.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", borderBottom: `1px solid ${colors.borderSubtle}` }}>
                   <span className={`seo-badge ${badgeClass}`} aria-label={check.status} style={{ minWidth: 24, justifyContent: "center" }}>
                     {STATUS_ICON[check.status]}
                   </span>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 500, fontSize: "0.8125rem", color: "#111827" }}>{check.label}</div>
-                    <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>{check.message}</div>
+                    <div style={{ fontWeight: 500, fontSize: "0.8125rem", color: colors.textPrimary }}>{check.label}</div>
+                    <div style={{ fontSize: "0.75rem", color: colors.textSecondary }}>{check.message}</div>
                   </div>
                 </div>
               );

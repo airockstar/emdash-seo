@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ScoreBadge } from "../components/score-badge.js";
+import { colors } from "../tokens.js";
 
 interface ScoreItem {
   id: string;
@@ -13,13 +14,16 @@ export interface SeoScoreWidgetProps {
 export function SeoScoreWidget({ callRoute }: SeoScoreWidgetProps) {
   const [scores, setScores] = useState<ScoreItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     callRoute("scores/list", { limit: 100 })
       .then((d: any) => setScores(d.items ?? []))
-      .catch(() => {})
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
+
+  if (error) return <div style={{ color: colors.errorText, fontSize: "0.8125rem" }}>Failed to load scores.</div>;
 
   if (loading) {
     return (
