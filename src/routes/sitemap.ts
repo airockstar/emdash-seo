@@ -18,9 +18,22 @@ interface SitemapCtx {
     };
   };
   content: {
-    list(): Promise<{ items: ContentItem[]; nextCursor?: string }>;
+    list(opts?: { cursor?: string }): Promise<{ items: ContentItem[]; nextCursor?: string }>;
   };
   site: { url: string };
+}
+
+async function fetchAllContent(ctx: SitemapCtx): Promise<ContentItem[]> {
+  const all: ContentItem[] = [];
+  let cursor: string | undefined;
+
+  do {
+    const result = await ctx.content.list(cursor ? { cursor } : undefined);
+    all.push(...result.items);
+    cursor = result.nextCursor;
+  } while (cursor);
+
+  return all;
 }
 
 export const sitemapRoutes = {
@@ -46,9 +59,8 @@ export const sitemapRoutes = {
           .filter(Boolean),
       );
 
-      const { items } = await ctx.content.list();
+      const items = await fetchAllContent(ctx);
 
-      // Filter by collection first, then batch-fetch overrides
       const candidates = items.filter(
         (item) => !excludedCollections.has(item.data.collection),
       );

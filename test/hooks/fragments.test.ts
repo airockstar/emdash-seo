@@ -3,112 +3,175 @@ import { fragmentsHandler } from "../../src/hooks/fragments.js";
 import { createMockCtx } from "../mocks/ctx.js";
 
 describe("fragmentsHandler", () => {
-  it("injects GA4 scripts when ID configured", async () => {
-    const ctx = createMockCtx({
-      settings: { googleAnalyticsId: "G-TESTID123" },
-    });
-    const result = await fragmentsHandler({}, ctx);
+  describe("GA4", () => {
+    it("injects GA4 scripts when ID configured", async () => {
+      const ctx = createMockCtx({
+        settings: { googleAnalyticsId: "G-TESTID123" },
+      });
+      const result = await fragmentsHandler({}, ctx);
 
-    expect(result).not.toBeNull();
-    expect(result!.filter((f) => f.key === "gtag-script" || f.key === "gtag-config")).toHaveLength(2);
-    expect(result![0].src).toContain("G-TESTID123");
+      const scripts = result!.filter(
+        (f) => f.key === "gtag-script" || f.key === "gtag-config",
+      );
+      expect(scripts).toHaveLength(2);
+      expect(scripts[0].src).toContain("G-TESTID123");
+    });
+
+    it("rejects invalid GA ID format", async () => {
+      const ctx = createMockCtx({
+        settings: { googleAnalyticsId: "invalid<script>" },
+      });
+      const result = await fragmentsHandler({}, ctx);
+      expect(result).toBeNull();
+    });
   });
 
-  it("injects Google verification meta tag", async () => {
-    const ctx = createMockCtx({
-      settings: { googleVerification: "abc123verification" },
-    });
-    const result = await fragmentsHandler({}, ctx);
+  describe("GTM", () => {
+    it("injects GTM script and noscript", async () => {
+      const ctx = createMockCtx({
+        settings: { gtmContainerId: "GTM-ABC123" },
+      });
+      const result = await fragmentsHandler({}, ctx);
 
-    expect(result).not.toBeNull();
-    const tag = result!.find((f) => f.key === "google-verification");
-    expect(tag).toBeDefined();
-    expect((tag!.html as string)).toContain("abc123verification");
+      const script = result!.find((f) => f.key === "gtm-script");
+      const noscript = result!.find((f) => f.key === "gtm-noscript");
+      expect(script).toBeDefined();
+      expect(script!.placement).toBe("head");
+      expect((script!.code as string)).toContain("GTM-ABC123");
+      expect(noscript).toBeDefined();
+      expect(noscript!.placement).toBe("body:start");
+    });
+
+    it("rejects invalid GTM ID", async () => {
+      const ctx = createMockCtx({
+        settings: { gtmContainerId: "not-a-gtm-id" },
+      });
+      const result = await fragmentsHandler({}, ctx);
+      expect(result).toBeNull();
+    });
   });
 
-  it("injects Bing verification meta tag", async () => {
-    const ctx = createMockCtx({
-      settings: { bingVerification: "bing123" },
-    });
-    const result = await fragmentsHandler({}, ctx);
+  describe("Cloudflare Analytics", () => {
+    it("injects CF beacon script", async () => {
+      const ctx = createMockCtx({
+        settings: { cfAnalyticsToken: "abc123token" },
+      });
+      const result = await fragmentsHandler({}, ctx);
 
-    const tag = result!.find((f) => f.key === "bing-verification");
-    expect(tag).toBeDefined();
-    expect((tag!.html as string)).toContain("msvalidate.01");
-    expect((tag!.html as string)).toContain("bing123");
+      const beacon = result!.find((f) => f.key === "cf-analytics");
+      expect(beacon).toBeDefined();
+      expect(beacon!.placement).toBe("body:end");
+      expect(beacon!.src).toContain("cloudflareinsights.com");
+    });
   });
 
-  it("injects Pinterest verification meta tag", async () => {
-    const ctx = createMockCtx({
-      settings: { pinterestVerification: "pin456" },
-    });
-    const result = await fragmentsHandler({}, ctx);
+  describe("Facebook Pixel", () => {
+    it("injects FB pixel script and noscript", async () => {
+      const ctx = createMockCtx({
+        settings: { facebookPixelId: "123456789" },
+      });
+      const result = await fragmentsHandler({}, ctx);
 
-    const tag = result!.find((f) => f.key === "pinterest-verification");
-    expect(tag).toBeDefined();
-    expect((tag!.html as string)).toContain("p:domain_verify");
+      const script = result!.find((f) => f.key === "fb-pixel");
+      const noscript = result!.find((f) => f.key === "fb-pixel-noscript");
+      expect(script).toBeDefined();
+      expect((script!.code as string)).toContain("123456789");
+      expect(noscript).toBeDefined();
+      expect((noscript!.html as string)).toContain("123456789");
+    });
   });
 
-  it("injects Yandex verification meta tag", async () => {
-    const ctx = createMockCtx({
-      settings: { yandexVerification: "yandex789" },
-    });
-    const result = await fragmentsHandler({}, ctx);
+  describe("Custom Scripts", () => {
+    it("injects custom head scripts", async () => {
+      const ctx = createMockCtx({
+        settings: { customHeadScripts: '<script>console.log("head")</script>' },
+      });
+      const result = await fragmentsHandler({}, ctx);
 
-    const tag = result!.find((f) => f.key === "yandex-verification");
-    expect(tag).toBeDefined();
-    expect((tag!.html as string)).toContain("yandex-verification");
+      const custom = result!.find((f) => f.key === "custom-head-scripts");
+      expect(custom).toBeDefined();
+      expect(custom!.placement).toBe("head");
+    });
+
+    it("injects custom body scripts", async () => {
+      const ctx = createMockCtx({
+        settings: { customBodyScripts: '<script>console.log("body")</script>' },
+      });
+      const result = await fragmentsHandler({}, ctx);
+
+      const custom = result!.find((f) => f.key === "custom-body-scripts");
+      expect(custom).toBeDefined();
+      expect(custom!.placement).toBe("body:end");
+    });
   });
 
-  it("returns null when nothing configured", async () => {
-    const ctx = createMockCtx();
-    const result = await fragmentsHandler({}, ctx);
+  describe("Verification Tags", () => {
+    it("injects Google verification", async () => {
+      const ctx = createMockCtx({
+        settings: { googleVerification: "gv123" },
+      });
+      const result = await fragmentsHandler({}, ctx);
+      const tag = result!.find((f) => f.key === "google-verification");
+      expect(tag).toBeDefined();
+      expect((tag!.html as string)).toContain("google-site-verification");
+    });
 
-    expect(result).toBeNull();
+    it("injects Bing verification", async () => {
+      const ctx = createMockCtx({ settings: { bingVerification: "bv123" } });
+      const result = await fragmentsHandler({}, ctx);
+      const tag = result!.find((f) => f.key === "bing-verification");
+      expect((tag!.html as string)).toContain("msvalidate.01");
+    });
+
+    it("injects Pinterest verification", async () => {
+      const ctx = createMockCtx({ settings: { pinterestVerification: "pv123" } });
+      const result = await fragmentsHandler({}, ctx);
+      const tag = result!.find((f) => f.key === "pinterest-verification");
+      expect((tag!.html as string)).toContain("p:domain_verify");
+    });
+
+    it("injects Yandex verification", async () => {
+      const ctx = createMockCtx({ settings: { yandexVerification: "yv123" } });
+      const result = await fragmentsHandler({}, ctx);
+      const tag = result!.find((f) => f.key === "yandex-verification");
+      expect((tag!.html as string)).toContain("yandex-verification");
+    });
+
+    it("rejects verification codes with special characters", async () => {
+      const ctx = createMockCtx({
+        settings: { googleVerification: '<script>alert("xss")</script>' },
+      });
+      const result = await fragmentsHandler({}, ctx);
+      expect(result).toBeNull();
+    });
   });
 
-  it("injects all providers when all configured", async () => {
-    const ctx = createMockCtx({
-      settings: {
-        googleAnalyticsId: "G-TEST",
-        googleVerification: "gv",
-        bingVerification: "bv",
-        pinterestVerification: "pv",
-        yandexVerification: "yv",
-      },
+  describe("General", () => {
+    it("returns null when nothing configured", async () => {
+      const ctx = createMockCtx();
+      const result = await fragmentsHandler({}, ctx);
+      expect(result).toBeNull();
     });
-    const result = await fragmentsHandler({}, ctx);
 
-    // 2 GA scripts + 4 verification tags
-    expect(result).toHaveLength(6);
-  });
+    it("combines all providers when all configured", async () => {
+      const ctx = createMockCtx({
+        settings: {
+          googleAnalyticsId: "G-TEST",
+          gtmContainerId: "GTM-TEST",
+          cfAnalyticsToken: "cftoken",
+          facebookPixelId: "fbpixel",
+          customHeadScripts: "<script>head</script>",
+          customBodyScripts: "<script>body</script>",
+          googleVerification: "gv",
+          bingVerification: "bv",
+          pinterestVerification: "pv",
+          yandexVerification: "yv",
+        },
+      });
+      const result = await fragmentsHandler({}, ctx);
 
-  it("rejects invalid GA ID format", async () => {
-    const ctx = createMockCtx({
-      settings: { googleAnalyticsId: "invalid<script>" },
+      // GA4(2) + GTM(2) + CF(1) + FB(2) + custom(2) + verification(4) = 13
+      expect(result).toHaveLength(13);
     });
-    const result = await fragmentsHandler({}, ctx);
-
-    expect(result).toBeNull();
-  });
-
-  it("rejects verification codes with special characters", async () => {
-    const ctx = createMockCtx({
-      settings: { googleVerification: '<script>alert("xss")</script>' },
-    });
-    const result = await fragmentsHandler({}, ctx);
-
-    expect(result).toBeNull();
-  });
-
-  it("places all fragments in head", async () => {
-    const ctx = createMockCtx({
-      settings: { googleAnalyticsId: "G-TEST", bingVerification: "bv" },
-    });
-    const result = await fragmentsHandler({}, ctx);
-
-    for (const fragment of result!) {
-      expect(fragment.placement).toBe("head");
-    }
   });
 });

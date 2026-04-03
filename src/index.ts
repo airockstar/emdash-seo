@@ -9,6 +9,7 @@ import { lifecycleHooks } from "./hooks/lifecycle.js";
 import { overrideRoutes } from "./routes/overrides.js";
 import { sitemapRoutes } from "./routes/sitemap.js";
 import { robotsRoutes } from "./routes/robots.js";
+import { analyticsStatusRoutes } from "./routes/analytics-status.js";
 
 const definition: PluginDefinition = {
   id: "@emdash-seo/toolkit",
@@ -28,6 +29,7 @@ const definition: PluginDefinition = {
     ...overrideRoutes,
     ...sitemapRoutes,
     ...robotsRoutes,
+    ...analyticsStatusRoutes,
   } as any,
 
   admin: {

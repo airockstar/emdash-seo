@@ -36,6 +36,27 @@ export const SETTINGS_SCHEMA = {
     default: "",
   },
 
+  // Phase 3: Analytics & Tracking
+  gtmContainerId: {
+    type: "string" as const,
+    label: "GTM Container ID (e.g. GTM-XXXXXXX)",
+    default: "",
+  },
+  cfAnalyticsToken: { type: "string" as const, label: "Cloudflare Analytics Token", default: "" },
+  facebookPixelId: { type: "string" as const, label: "Facebook Pixel ID", default: "" },
+  customHeadScripts: {
+    type: "string" as const,
+    label: "Custom Scripts (head)",
+    default: "",
+    multiline: true,
+  },
+  customBodyScripts: {
+    type: "string" as const,
+    label: "Custom Scripts (body end)",
+    default: "",
+    multiline: true,
+  },
+
   // Phase 2: Sitemap & Indexing
   sitemapEnabled: { type: "boolean" as const, label: "Enable XML Sitemap", default: true },
   sitemapExclude: {
