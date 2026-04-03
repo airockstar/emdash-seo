@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Skeleton } from "../components/shared.js";
 import { colors } from "../tokens.js";
 
 interface StatusData {
@@ -29,8 +30,8 @@ export function SeoStatusWidget({ callRoute }: SeoStatusWidgetProps) {
   if (!data) {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="seo-skeleton" style={{ height: 20, width: `${60 + i * 10}%` }} />
+        {[70, 80, 90, 60].map((w, i) => (
+          <Skeleton key={i} width={`${w}%`} height={20} />
         ))}
       </div>
     );
@@ -50,7 +51,7 @@ export function SeoStatusWidget({ callRoute }: SeoStatusWidgetProps) {
       </div>
       {items.map((item) => (
         <div key={item.label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${colors.borderSubtle}` }}>
-          <span style={{ fontSize: "0.8125rem", color: "#374151" }}>{item.label}</span>
+          <span style={{ fontSize: "0.8125rem", color: colors.textBody }}>{item.label}</span>
           <span className={`seo-badge ${item.bad ? "seo-badge-error" : "seo-badge-success"}`}>
             {item.count}
           </span>

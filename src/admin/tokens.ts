@@ -10,6 +10,7 @@ export const colors = {
   textPrimary: "#111827",
   textSecondary: "#6b7280",
   textTertiary: "#9ca3af",
+  textBody: "#374151",
   textInverse: "#ffffff",
 
   success: "#10b981",
@@ -20,6 +21,7 @@ export const colors = {
   warningText: "#92400e",
   error: "#ef4444",
   errorBg: "#fef2f2",
+  errorBorder: "#fecaca",
   errorText: "#991b1b",
 
   accent: "#6366f1",

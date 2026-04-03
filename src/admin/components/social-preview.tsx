@@ -1,5 +1,6 @@
 import React from "react";
-import { colors, radius } from "../tokens.js";
+import { colors, fontFamily, radius } from "../tokens.js";
+import { truncate, parseDomain } from "./shared.js";
 
 interface SocialPreviewProps {
   title: string;
@@ -9,27 +10,24 @@ interface SocialPreviewProps {
   platform: "facebook" | "twitter" | "linkedin";
 }
 
+const PLATFORM_RADIUS: Record<string, string> = {
+  facebook: radius.sm,
+  twitter: "0.875rem",
+  linkedin: radius.sm,
+};
+
 export function SocialPreview({ title, description, image, url, platform }: SocialPreviewProps) {
-  const domain = (() => {
-    try { return new URL(url).hostname; } catch { return url; }
-  })();
-
-  const truncTitle = title.length > 70 ? title.slice(0, 67) + "..." : title;
-  const truncDesc = description.length > 100 ? description.slice(0, 97) + "..." : description;
-
-  const borderStyles: Record<string, string> = {
-    facebook: radius.sm,
-    twitter: "0.875rem",
-    linkedin: radius.sm,
-  };
+  const domain = parseDomain(url);
+  const truncTitle = truncate(title, 70);
+  const truncDesc = truncate(description, 100);
 
   return (
     <div
       role="img" aria-label={`${platform} card preview`}
       style={{
         maxWidth: 524, border: `1px solid ${colors.borderDefault}`,
-        borderRadius: borderStyles[platform], overflow: "hidden",
-        background: colors.bgPrimary, fontFamily: fontFamily(platform),
+        borderRadius: PLATFORM_RADIUS[platform], overflow: "hidden",
+        background: colors.bgPrimary, fontFamily,
       }}
     >
       {image ? (
@@ -39,8 +37,8 @@ export function SocialPreview({ title, description, image, url, platform }: Soci
       ) : (
         <div style={{
           width: "100%", height: 140, background: colors.bgTertiary,
-          display: "flex", alignItems: "center", justifyContent: "center", color: colors.textTertiary,
-          fontSize: "0.8125rem",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          color: colors.textTertiary, fontSize: "0.8125rem",
         }}>
           No image set
         </div>
@@ -58,9 +56,4 @@ export function SocialPreview({ title, description, image, url, platform }: Soci
       </div>
     </div>
   );
-}
-
-function fontFamily(platform: string): string {
-  if (platform === "twitter") return '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-  return 'Helvetica, Arial, sans-serif';
 }

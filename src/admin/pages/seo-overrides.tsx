@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { SerpPreview } from "../components/serp-preview.js";
 import { CharacterCounter } from "../components/character-counter.js";
+import { EmptyState } from "../components/shared.js";
 import { colors } from "../tokens.js";
 
 interface Override {
@@ -99,10 +100,7 @@ export function SeoOverridesPage({ callRoute, siteUrl }: SeoOverridesPageProps) 
       {loading ? (
         <div className="seo-empty">Loading overrides...</div>
       ) : overrides.length === 0 ? (
-        <div className="seo-empty">
-          <div style={{ fontSize: "1rem", marginBottom: 4 }}>No overrides yet</div>
-          <div style={{ fontSize: "0.8125rem" }}>Edit content in the CMS to add SEO overrides.</div>
-        </div>
+        <EmptyState title="No overrides yet" description="Edit content in the CMS to add SEO overrides." />
       ) : (
         <div className="seo-table-wrap">
           <table className="seo-table">

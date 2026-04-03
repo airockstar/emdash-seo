@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ScoreBadge } from "../components/score-badge.js";
+import { Skeleton, EmptyState } from "../components/shared.js";
 import { colors } from "../tokens.js";
 
 interface ScoreItem {
@@ -28,34 +29,32 @@ export function SeoScoreWidget({ callRoute }: SeoScoreWidgetProps) {
   if (loading) {
     return (
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <div className="seo-skeleton" style={{ width: 72, height: 72, borderRadius: "50%" }} />
+        <Skeleton width={72} height={72} circle />
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <div className="seo-skeleton" style={{ width: 80, height: 14 }} />
-          <div className="seo-skeleton" style={{ width: 120, height: 12 }} />
+          <Skeleton width={80} height={14} />
+          <Skeleton width={120} height={12} />
         </div>
       </div>
     );
   }
 
   if (scores.length === 0) {
-    return (
-      <div className="seo-empty" style={{ padding: "1.5rem" }}>
-        <div style={{ fontSize: "0.875rem", marginBottom: 4 }}>No scores yet</div>
-        <div style={{ fontSize: "0.75rem" }}>Analyze content to see site-wide SEO scores.</div>
-      </div>
-    );
+    return <EmptyState title="No scores yet" description="Analyze content to see site-wide SEO scores." />;
   }
 
   const avg = Math.round(scores.reduce((sum, s) => sum + s.data.score, 0) / scores.length);
-  const good = scores.filter((s) => s.data.score >= 70).length;
-  const fair = scores.filter((s) => s.data.score >= 40 && s.data.score < 70).length;
-  const poor = scores.filter((s) => s.data.score < 40).length;
+  let good = 0, fair = 0, poor = 0;
+  for (const s of scores) {
+    if (s.data.score >= 70) good++;
+    else if (s.data.score >= 40) fair++;
+    else poor++;
+  }
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
       <ScoreBadge score={avg} size={72} />
       <div>
-        <div style={{ fontSize: "0.75rem", color: "#6b7280", marginBottom: 8 }}>
+        <div style={{ fontSize: "0.75rem", color: colors.textSecondary, marginBottom: 8 }}>
           Site Average ({scores.length} pages)
         </div>
         <div style={{ display: "flex", gap: 12, fontSize: "0.8125rem" }}>

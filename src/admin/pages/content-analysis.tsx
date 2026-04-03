@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { ScoreBadge } from "../components/score-badge.js";
+import { ErrorBanner, EmptyState } from "../components/shared.js";
 import { colors } from "../tokens.js";
 import type { SeoCheck } from "../../types.js";
 
@@ -63,11 +64,7 @@ export function ContentAnalysisPage({ callRoute }: ContentAnalysisPageProps) {
         </div>
       </div>
 
-      {error && (
-        <div className="seo-fade-in" style={{ padding: "12px 16px", background: colors.errorBg, border: `1px solid ${colors.error}`, borderRadius: "0.375rem", color: colors.errorText, marginBottom: 16, fontSize: "0.8125rem" }}>
-          {error}
-        </div>
-      )}
+      {error && <ErrorBanner message={error} />}
 
       {result && (
         <div className="seo-card seo-fade-in">
@@ -98,10 +95,7 @@ export function ContentAnalysisPage({ callRoute }: ContentAnalysisPageProps) {
       )}
 
       {!result && !error && !loading && (
-        <div className="seo-empty">
-          <div style={{ fontSize: "1rem", marginBottom: 4 }}>Run an analysis</div>
-          <div style={{ fontSize: "0.8125rem" }}>Enter a content ID above and click Analyze to see your SEO score.</div>
-        </div>
+        <EmptyState title="Run an analysis" description="Enter a content ID above and click Analyze to see your SEO score." />
       )}
     </div>
   );

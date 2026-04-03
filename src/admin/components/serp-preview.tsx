@@ -1,5 +1,6 @@
 import React from "react";
 import { colors, radius } from "../tokens.js";
+import { truncate } from "./shared.js";
 
 interface SerpPreviewProps {
   title: string;
@@ -8,8 +9,8 @@ interface SerpPreviewProps {
 }
 
 export function SerpPreview({ title, url, description }: SerpPreviewProps) {
-  const truncTitle = title.length > 60 ? title.slice(0, 57) + "..." : title;
-  const truncDesc = description.length > 160 ? description.slice(0, 157) + "..." : description;
+  const truncTitle = truncate(title, 60);
+  const truncDesc = truncate(description, 160);
 
   const displayUrl = (() => {
     try {
