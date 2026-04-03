@@ -15,6 +15,7 @@ import { analyticsStatusRoutes } from "./routes/analytics-status.js";
 import { analyzeRoutes } from "./routes/analyze.js";
 import { scoresRoutes } from "./routes/scores.js";
 import { socialRoutes } from "./routes/social.js";
+import { licenseRoutes } from "./routes/license.js";
 
 const definition: PluginDefinition = {
   id: "@emdash-seo/toolkit",
@@ -41,6 +42,7 @@ const definition: PluginDefinition = {
     ...analyzeRoutes,
     ...scoresRoutes,
     ...socialRoutes,
+    ...licenseRoutes,
   } as any,
 
   admin: {

@@ -72,7 +72,8 @@ describe("analyze/advanced route (paid)", () => {
   });
 
   it("returns full checks with license", async () => {
-    const ctx = createAnalyzeCtx(sampleContent, {}, { licenseKey: "valid-key" });
+    const proKey = btoa(JSON.stringify({ tier: "pro", exp: "2030-01-01T00:00:00Z" }));
+    const ctx = createAnalyzeCtx(sampleContent, {}, { licenseKey: proKey });
     const result = await handler(ctx as any);
 
     expect(result.score).toBeTypeOf("number");

@@ -11,6 +11,7 @@ import { checkKeywordDensity, checkKeywordInFirstParagraph } from "../analysis/k
 import { checkInternalLinks } from "../analysis/links.js";
 import { checkDuplicateTitle, checkDuplicateDescription } from "../analysis/duplicates.js";
 import { calculateScore } from "../analysis/score.js";
+import { checkLicenseStatus, isFeatureAllowed } from "../utils/license.js";
 
 function runFreeChecks(
   title: string | undefined,
@@ -89,8 +90,8 @@ export const analyzeRoutes = {
   "analyze/advanced": {
     input: AnalyzeInput,
     handler: async (ctx: any) => {
-      const licenseKey = await ctx.kv.get("settings:licenseKey");
-      if (!licenseKey) {
+      const license = await checkLicenseStatus(ctx);
+      if (!isFeatureAllowed("advanced-analysis", license.tier)) {
         return { error: "pro_required", message: "Advanced analysis requires a Pro license" };
       }
 
