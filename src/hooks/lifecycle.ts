@@ -6,11 +6,15 @@ interface LifecycleCtx {
     get<T>(key: string): Promise<T | null>;
     set(key: string, value: unknown): Promise<void>;
   };
+  cron: {
+    schedule(name: string, opts: { schedule: string }): Promise<void>;
+  };
 }
 
 export const lifecycleHooks = {
   "plugin:activate": async (_event: unknown, ctx: LifecycleCtx) => {
     ctx.log.info("SEO Toolkit activated");
+    await ctx.cron.schedule("recalculate-scores", { schedule: "0 3 * * 0" });
   },
 
   "plugin:install": async (_event: unknown, ctx: LifecycleCtx) => {

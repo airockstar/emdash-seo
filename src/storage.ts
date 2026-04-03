@@ -3,4 +3,8 @@ export const STORAGE = {
     indexes: ["collection", "contentId"],
     uniqueIndexes: ["contentId"],
   },
+  scores: {
+    indexes: ["collection", "score", "contentId", ["collection", "score"]],
+    uniqueIndexes: ["contentId"],
+  },
 };
