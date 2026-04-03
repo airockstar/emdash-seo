@@ -7,6 +7,8 @@ import { metadataHandler } from "./hooks/metadata.js";
 import { fragmentsHandler } from "./hooks/fragments.js";
 import { lifecycleHooks } from "./hooks/lifecycle.js";
 import { overrideRoutes } from "./routes/overrides.js";
+import { sitemapRoutes } from "./routes/sitemap.js";
+import { robotsRoutes } from "./routes/robots.js";
 
 const definition: PluginDefinition = {
   id: "@emdash-seo/toolkit",
@@ -22,7 +24,11 @@ const definition: PluginDefinition = {
     "page:fragments": fragmentsHandler as any,
   },
 
-  routes: overrideRoutes as any,
+  routes: {
+    ...overrideRoutes,
+    ...sitemapRoutes,
+    ...robotsRoutes,
+  } as any,
 
   admin: {
     settingsSchema: SETTINGS_SCHEMA,

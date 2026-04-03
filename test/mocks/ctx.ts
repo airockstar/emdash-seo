@@ -59,10 +59,21 @@ function createMockCollection<T extends Record<string, unknown>>(
   };
 }
 
+export interface MockContentItem {
+  id: string;
+  collection: string;
+  slug: string;
+  title?: string;
+  status?: string;
+  updatedAt?: string;
+  [key: string]: unknown;
+}
+
 export interface MockCtxOptions {
   settings?: Record<string, unknown>;
   overrides?: Record<string, SeoOverrides>;
   scores?: Record<string, SeoScore>;
+  contentItems?: MockContentItem[];
   site?: Partial<{ name: string; url: string; locale: string }>;
 }
 
@@ -103,6 +114,15 @@ export function createMockCtx(options: MockCtxOptions = {}) {
       ...options.site,
     },
     url: (path: string) => `https://example.com${path}`,
+    content: {
+      get: vi.fn(async (id: string) =>
+        (options.contentItems ?? []).find((c) => c.id === id) ?? null,
+      ),
+      list: vi.fn(async () => ({
+        items: (options.contentItems ?? []).map((c) => ({ id: c.id, data: c })),
+        nextCursor: undefined,
+      })),
+    },
     plugin: { id: "@emdash-seo/toolkit", version: "0.1.0" },
     cron: {
       schedule: vi.fn(),
