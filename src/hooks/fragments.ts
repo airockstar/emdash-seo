@@ -14,8 +14,6 @@ const GA_ID_PATTERN = /^G-[A-Z0-9]+$/;
 const GTM_ID_PATTERN = /^GTM-[A-Z0-9]+$/;
 const ALPHANUMERIC_PATTERN = /^[a-zA-Z0-9_-]+$/;
 
-// --- Injector functions ---
-
 function injectGA4(gaId: string): Fragment[] {
   if (!gaId || !GA_ID_PATTERN.test(gaId)) return [];
   return [
@@ -59,9 +57,8 @@ function injectCfAnalytics(token: string): Fragment[] {
     {
       kind: "external-script",
       placement: "body:end",
-      src: `https://static.cloudflareinsights.com/beacon.min.js`,
+      src: "https://static.cloudflareinsights.com/beacon.min.js",
       defer: true,
-      attributes: { "data-cf-beacon": `{"token":"${token}"}` },
       key: "cf-analytics",
     },
   ];
@@ -107,42 +104,19 @@ function injectCustomScripts(headScripts: string, bodyScripts: string): Fragment
   return fragments;
 }
 
-function buildVerificationTag(
-  name: string,
-  content: string,
-  key: string,
-): Fragment | null {
-  if (!content || !ALPHANUMERIC_PATTERN.test(content)) return null;
-  return {
-    kind: "html",
-    placement: "head",
-    html: `<meta name="${name}" content="${content}">`,
-    key,
-  };
-}
-
-// --- Main handler ---
-
 export async function fragmentsHandler(
   _event: unknown,
   ctx: FragmentsCtx,
 ): Promise<Fragment[] | null> {
-  const [
-    gaId, gtmId, cfToken, fbPixelId,
-    customHead, customBody,
-    googleV, bingV, pinterestV, yandexV,
-  ] = await Promise.all([
-    ctx.kv.get<string>("settings:googleAnalyticsId"),
-    ctx.kv.get<string>("settings:gtmContainerId"),
-    ctx.kv.get<string>("settings:cfAnalyticsToken"),
-    ctx.kv.get<string>("settings:facebookPixelId"),
-    ctx.kv.get<string>("settings:customHeadScripts"),
-    ctx.kv.get<string>("settings:customBodyScripts"),
-    ctx.kv.get<string>("settings:googleVerification"),
-    ctx.kv.get<string>("settings:bingVerification"),
-    ctx.kv.get<string>("settings:pinterestVerification"),
-    ctx.kv.get<string>("settings:yandexVerification"),
-  ]);
+  const [gaId, gtmId, cfToken, fbPixelId, customHead, customBody] =
+    await Promise.all([
+      ctx.kv.get<string>("settings:googleAnalyticsId"),
+      ctx.kv.get<string>("settings:gtmContainerId"),
+      ctx.kv.get<string>("settings:cfAnalyticsToken"),
+      ctx.kv.get<string>("settings:facebookPixelId"),
+      ctx.kv.get<string>("settings:customHeadScripts"),
+      ctx.kv.get<string>("settings:customBodyScripts"),
+    ]);
 
   const fragments: Fragment[] = [
     ...injectGA4(gaId ?? ""),
@@ -151,17 +125,6 @@ export async function fragmentsHandler(
     ...injectFacebookPixel(fbPixelId ?? ""),
     ...injectCustomScripts(customHead ?? "", customBody ?? ""),
   ];
-
-  const verificationTags = [
-    buildVerificationTag("google-site-verification", googleV ?? "", "google-verification"),
-    buildVerificationTag("msvalidate.01", bingV ?? "", "bing-verification"),
-    buildVerificationTag("p:domain_verify", pinterestV ?? "", "pinterest-verification"),
-    buildVerificationTag("yandex-verification", yandexV ?? "", "yandex-verification"),
-  ];
-
-  for (const tag of verificationTags) {
-    if (tag) fragments.push(tag);
-  }
 
   return fragments.length > 0 ? fragments : null;
 }

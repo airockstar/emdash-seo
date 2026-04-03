@@ -22,16 +22,25 @@ const definition: PluginDefinition = {
   version: "0.1.0",
 
   capabilities: CAPABILITIES,
-  allowedHosts: ["api.twitter.com", "*.bsky.social"],
+  allowedHosts: ["api.twitter.com", "api.x.com", "*.bsky.social"],
   storage: STORAGE,
 
   hooks: {
     "plugin:activate": lifecycleHooks["plugin:activate"] as any,
     "plugin:install": lifecycleHooks["plugin:install"] as any,
+    "plugin:deactivate": lifecycleHooks["plugin:deactivate"] as any,
+    "plugin:uninstall": lifecycleHooks["plugin:uninstall"] as any,
     "page:metadata": metadataHandler as any,
     "page:fragments": fragmentsHandler as any,
-    "content:afterSave": contentAfterSaveHook as any,
-    cron: cronHook as any,
+    "content:afterSave": {
+      timeout: 15000,
+      errorPolicy: "continue",
+      handler: contentAfterSaveHook,
+    } as any,
+    cron: {
+      timeout: 60000,
+      handler: cronHook,
+    } as any,
   },
 
   routes: {
@@ -46,6 +55,7 @@ const definition: PluginDefinition = {
   } as any,
 
   admin: {
+    entry: "./admin/index.tsx",
     settingsSchema: SETTINGS_SCHEMA,
     pages: [
       { path: "seo-overrides", label: "SEO Overrides", icon: "search" },

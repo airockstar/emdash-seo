@@ -8,6 +8,12 @@ export const STORAGE = {
     uniqueIndexes: ["contentId"],
   },
   socialPosts: {
-    indexes: ["contentId", "platform", "postedAt", ["contentId", "platform"]],
+    indexes: [
+      "contentId",
+      "platform",
+      "postedAt",
+      ["contentId", "platform"],
+      ["contentId", "postedAt"],
+    ],
   },
 };

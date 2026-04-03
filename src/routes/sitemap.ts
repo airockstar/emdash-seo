@@ -1,14 +1,5 @@
 import { buildSitemapXml, type SitemapEntry } from "../schemas/sitemap-xml.js";
-
-interface ContentItem {
-  id: string;
-  data: {
-    collection: string;
-    slug: string;
-    updatedAt?: string;
-    [key: string]: unknown;
-  };
-}
+import { fetchAllContent } from "../utils/content.js";
 
 interface SitemapCtx {
   kv: { get<T>(key: string): Promise<T | null> };
@@ -18,26 +9,13 @@ interface SitemapCtx {
     };
   };
   content: {
-    list(opts?: { cursor?: string }): Promise<{ items: ContentItem[]; nextCursor?: string }>;
+    list(opts?: { cursor?: string }): Promise<{ items: Array<{ id: string; data: Record<string, unknown> }>; nextCursor?: string }>;
   };
   site: { url: string };
 }
 
-async function fetchAllContent(ctx: SitemapCtx): Promise<ContentItem[]> {
-  const all: ContentItem[] = [];
-  let cursor: string | undefined;
-
-  do {
-    const result = await ctx.content.list(cursor ? { cursor } : undefined);
-    all.push(...result.items);
-    cursor = result.nextCursor;
-  } while (cursor);
-
-  return all;
-}
-
 export const sitemapRoutes = {
-  "sitemap.xml": {
+  "sitemap-xml": {
     public: true,
     handler: async (ctx: SitemapCtx) => {
       const [sitemapEnabled, sitemapExclude, defaultChangefreq, defaultPriority] =
@@ -45,11 +23,11 @@ export const sitemapRoutes = {
           ctx.kv.get<boolean>("settings:sitemapEnabled"),
           ctx.kv.get<string>("settings:sitemapExclude"),
           ctx.kv.get<string>("settings:sitemapDefaultChangefreq"),
-          ctx.kv.get<string>("settings:sitemapDefaultPriority"),
+          ctx.kv.get<number>("settings:sitemapDefaultPriority"),
         ]);
 
       if (sitemapEnabled === false) {
-        return new Response("Sitemap disabled", { status: 404 });
+        return { error: "disabled", message: "Sitemap is disabled" };
       }
 
       const excludedCollections = new Set(
@@ -62,13 +40,13 @@ export const sitemapRoutes = {
       const items = await fetchAllContent(ctx);
 
       const candidates = items.filter(
-        (item) => !excludedCollections.has(item.data.collection),
+        (item) => !excludedCollections.has(item.data.collection as string),
       );
       const overridesMap = await ctx.storage.overrides.getMany(
         candidates.map((item) => item.id),
       );
 
-      const priority = parseFloat(defaultPriority ?? "0.5");
+      const priority = defaultPriority ?? 0.5;
       const changefreq = (defaultChangefreq as SitemapEntry["changefreq"]) ?? "weekly";
       const entries: SitemapEntry[] = [];
 
@@ -76,19 +54,16 @@ export const sitemapRoutes = {
         const overrides = overridesMap.get(item.id);
         if (overrides?.robots?.includes("noindex")) continue;
 
-        const slug = item.data.slug || item.id;
+        const slug = (item.data.slug as string) || item.id;
         entries.push({
           loc: `${ctx.site.url}/${item.data.collection}/${slug}`,
-          lastmod: item.data.updatedAt,
+          lastmod: item.data.updatedAt as string | undefined,
           changefreq,
           priority,
         });
       }
 
-      const xml = buildSitemapXml(entries);
-      return new Response(xml, {
-        headers: { "Content-Type": "application/xml; charset=utf-8" },
-      });
+      return { xml: buildSitemapXml(entries), contentType: "application/xml" };
     },
   },
 };

@@ -11,7 +11,7 @@ function createCtx(
     settings: {
       sitemapEnabled: true,
       sitemapDefaultChangefreq: "weekly",
-      sitemapDefaultPriority: "0.5",
+      sitemapDefaultPriority: 0.5,
       ...settings,
     },
     contentItems,
@@ -27,86 +27,75 @@ function defaultContent() {
   ];
 }
 
-describe("sitemap.xml route", () => {
-  const handler = sitemapRoutes["sitemap.xml"].handler;
+describe("sitemap-xml route", () => {
+  const handler = sitemapRoutes["sitemap-xml"].handler;
 
   it("returns XML with all published content", async () => {
     const ctx = createCtx();
-    const response = await handler(ctx as any);
+    const result = await handler(ctx as any) as any;
 
-    const xml = await (response as Response).text();
-    expect(xml).toContain("<urlset");
-    expect(xml).toContain("hello-world</loc>");
-    expect(xml).toContain("second-post</loc>");
-    expect(xml).toContain("about</loc>");
+    expect(result.xml).toContain("<urlset");
+    expect(result.xml).toContain("hello-world</loc>");
+    expect(result.xml).toContain("second-post</loc>");
+    expect(result.xml).toContain("about</loc>");
   });
 
-  it("sets correct content type", async () => {
+  it("returns application/xml content type", async () => {
     const ctx = createCtx();
-    const response = await handler(ctx as any);
-
-    expect((response as Response).headers.get("Content-Type")).toBe(
-      "application/xml; charset=utf-8",
-    );
+    const result = await handler(ctx as any) as any;
+    expect(result.contentType).toBe("application/xml");
   });
 
-  it("returns 404 when sitemap is disabled", async () => {
+  it("returns error when sitemap is disabled", async () => {
     const ctx = createCtx({ sitemapEnabled: false });
-    const response = await handler(ctx as any);
-
-    expect((response as Response).status).toBe(404);
+    const result = await handler(ctx as any) as any;
+    expect(result.error).toBe("disabled");
   });
 
   it("excludes collections from sitemapExclude", async () => {
     const ctx = createCtx({ sitemapExclude: "pages" });
-    const response = await handler(ctx as any);
-    const xml = await (response as Response).text();
+    const result = await handler(ctx as any) as any;
 
-    expect(xml).toContain("hello-world");
-    expect(xml).not.toContain("about");
+    expect(result.xml).toContain("hello-world");
+    expect(result.xml).not.toContain("about");
   });
 
   it("excludes noindex pages", async () => {
     const ctx = createCtx({}, defaultContent(), {
       p1: { contentId: "p1", robots: "noindex, nofollow" },
     });
-    const response = await handler(ctx as any);
-    const xml = await (response as Response).text();
+    const result = await handler(ctx as any) as any;
 
-    expect(xml).not.toContain("hello-world");
-    expect(xml).toContain("second-post");
+    expect(result.xml).not.toContain("hello-world");
+    expect(result.xml).toContain("second-post");
   });
 
   it("uses default changefreq and priority", async () => {
     const ctx = createCtx({
       sitemapDefaultChangefreq: "daily",
-      sitemapDefaultPriority: "0.8",
+      sitemapDefaultPriority: 0.8,
     });
-    const response = await handler(ctx as any);
-    const xml = await (response as Response).text();
+    const result = await handler(ctx as any) as any;
 
-    expect(xml).toContain("<changefreq>daily</changefreq>");
-    expect(xml).toContain("<priority>0.8</priority>");
+    expect(result.xml).toContain("<changefreq>daily</changefreq>");
+    expect(result.xml).toContain("<priority>0.8</priority>");
   });
 
   it("includes lastmod from content", async () => {
     const ctx = createCtx();
-    const response = await handler(ctx as any);
-    const xml = await (response as Response).text();
-
-    expect(xml).toContain("<lastmod>2026-01-15</lastmod>");
+    const result = await handler(ctx as any) as any;
+    expect(result.xml).toContain("<lastmod>2026-01-15</lastmod>");
   });
 
   it("handles empty content list", async () => {
     const ctx = createCtx({}, []);
-    const response = await handler(ctx as any);
-    const xml = await (response as Response).text();
+    const result = await handler(ctx as any) as any;
 
-    expect(xml).toContain("<urlset");
-    expect(xml).not.toContain("<url>");
+    expect(result.xml).toContain("<urlset");
+    expect(result.xml).not.toContain("<url>");
   });
 
   it("is a public route", () => {
-    expect(sitemapRoutes["sitemap.xml"].public).toBe(true);
+    expect(sitemapRoutes["sitemap-xml"].public).toBe(true);
   });
 });

@@ -74,7 +74,7 @@ export const SETTINGS_SCHEMA = {
     ],
     default: "weekly",
   },
-  sitemapDefaultPriority: { type: "string" as const, label: "Default Priority (0.0-1.0)", default: "0.5" },
+  sitemapDefaultPriority: { type: "number" as const, label: "Default Priority (0.0-1.0)", default: 0.5, min: 0, max: 1 },
   robotsTxtCustom: { type: "string" as const, label: "Custom robots.txt Rules", default: "", multiline: true },
   robotsCrawlDelay: { type: "number" as const, label: "Crawl Delay (seconds)", default: 0, min: 0, max: 60 },
   bingVerification: { type: "string" as const, label: "Bing Verification Code", default: "" },

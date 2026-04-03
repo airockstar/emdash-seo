@@ -42,6 +42,10 @@ export async function metadataHandler(
     orgLogoUrl,
     defaultRobots,
     overrides,
+    googleV,
+    bingV,
+    pinterestV,
+    yandexV,
   ] = await Promise.all([
     ctx.kv.get<string>("settings:siteName"),
     ctx.kv.get<string>("settings:titleTemplate"),
@@ -54,6 +58,10 @@ export async function metadataHandler(
     page.content
       ? ctx.storage.overrides.get(page.content.id)
       : Promise.resolve(null),
+    ctx.kv.get<string>("settings:googleVerification"),
+    ctx.kv.get<string>("settings:bingVerification"),
+    ctx.kv.get<string>("settings:pinterestVerification"),
+    ctx.kv.get<string>("settings:yandexVerification"),
   ]);
 
   const defaults: SeoDefaults = {
@@ -248,6 +256,20 @@ export async function metadataHandler(
         url: ctx.site.url,
       }),
     });
+  }
+
+  // Verification meta tags (proper page:metadata contributions, not fragments)
+  const VERIFICATION_PATTERN = /^[a-zA-Z0-9_-]+$/;
+  const verifications: Array<[string, string | null]> = [
+    ["google-site-verification", googleV],
+    ["msvalidate.01", bingV],
+    ["p:domain_verify", pinterestV],
+    ["yandex-verification", yandexV],
+  ];
+  for (const [name, value] of verifications) {
+    if (value && VERIFICATION_PATTERN.test(value)) {
+      contributions.push({ kind: "meta", name, content: value });
+    }
   }
 
   return contributions;

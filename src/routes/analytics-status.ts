@@ -1,35 +1,17 @@
-interface ContentItem {
-  id: string;
-  data: {
-    title?: string;
-    description?: string;
-    image?: string;
-    [key: string]: unknown;
-  };
-}
+import { fetchAllContent } from "../utils/content.js";
 
 interface StatusCtx {
   content: {
-    list(opts?: { cursor?: string }): Promise<{ items: ContentItem[]; nextCursor?: string }>;
+    list(opts?: { cursor?: string }): Promise<{
+      items: Array<{ id: string; data: Record<string, unknown> }>;
+      nextCursor?: string;
+    }>;
   };
   storage: {
     overrides: {
       getMany(ids: string[]): Promise<Map<string, { title?: string; description?: string; ogImage?: string }>>;
     };
   };
-}
-
-async function fetchAllContent(ctx: StatusCtx): Promise<ContentItem[]> {
-  const all: ContentItem[] = [];
-  let cursor: string | undefined;
-
-  do {
-    const result = await ctx.content.list(cursor ? { cursor } : undefined);
-    all.push(...result.items);
-    cursor = result.nextCursor;
-  } while (cursor);
-
-  return all;
 }
 
 export const analyticsStatusRoutes = {
@@ -49,9 +31,9 @@ export const analyticsStatusRoutes = {
         const overrides = overridesMap.get(item.id);
         if (overrides) withOverrides++;
 
-        const title = overrides?.title ?? item.data.title;
-        const description = overrides?.description ?? item.data.description;
-        const ogImage = overrides?.ogImage ?? item.data.image;
+        const title = overrides?.title ?? (item.data.title as string | undefined);
+        const description = overrides?.description ?? (item.data.description as string | undefined);
+        const ogImage = overrides?.ogImage ?? (item.data.image as string | undefined);
 
         if (!title) missingTitle++;
         if (!description) missingDescription++;

@@ -1,4 +1,5 @@
 import { extractHeadings, extractImages } from "../utils/portable-text.js";
+import { fetchAllContent } from "../utils/content.js";
 import { checkTitleLength, checkTitleKeyword } from "../analysis/title.js";
 import { checkDescriptionLength, checkDescriptionKeyword } from "../analysis/description.js";
 import { checkSingleH1, checkHeadingHierarchy } from "../analysis/headings.js";
@@ -8,25 +9,25 @@ import { calculateScore } from "../analysis/score.js";
 export const cronHook = async (event: any, ctx: any) => {
   if (event.name !== "recalculate-scores") return;
 
-  const all: any[] = [];
-  let cursor: string | undefined;
+  const items = await fetchAllContent(ctx);
 
-  do {
-    const result = await ctx.content.list(cursor ? { cursor } : undefined);
-    all.push(...result.items);
-    cursor = result.nextCursor;
-  } while (cursor);
+  // Batch fetch all overrides
+  const overridesMap = await ctx.storage.overrides.getMany(
+    items.map((item: any) => item.id),
+  );
 
-  for (const item of all) {
+  const scoresToWrite: Array<{ id: string; data: Record<string, unknown> }> = [];
+
+  for (const item of items) {
     const content = item.data ?? item;
-    const overrides = await ctx.storage.overrides.get(item.id);
+    const overrides = overridesMap.get(item.id);
     const title = overrides?.title ?? content.title;
     const description = overrides?.description ?? content.description;
     const keyword = overrides?.focusKeyword;
-    const blocks = content.body ?? [];
+    const blocks = (content.body ?? []) as any[];
 
-    const headings = extractHeadings(blocks);
-    const images = extractImages(blocks);
+    const headings = extractHeadings(blocks as any);
+    const images = extractImages(blocks as any);
 
     const checks = [
       checkTitleLength(title),
@@ -40,12 +41,20 @@ export const cronHook = async (event: any, ctx: any) => {
 
     const score = calculateScore(checks);
 
-    await ctx.storage.scores.put(item.id, {
-      contentId: item.id,
-      collection: content.collection ?? "",
-      score,
-      checks,
-      analyzedAt: new Date().toISOString(),
+    scoresToWrite.push({
+      id: item.id,
+      data: {
+        contentId: item.id,
+        collection: content.collection ?? "",
+        score,
+        checks,
+        analyzedAt: new Date().toISOString(),
+      },
     });
+  }
+
+  // Batch write all scores
+  if (scoresToWrite.length > 0) {
+    await ctx.storage.scores.putMany(scoresToWrite);
   }
 };

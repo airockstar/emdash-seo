@@ -6,7 +6,7 @@ interface RobotsCtx {
 }
 
 export const robotsRoutes = {
-  "robots.txt": {
+  "robots-txt": {
     public: true,
     handler: async (ctx: RobotsCtx) => {
       const [customRules, crawlDelay, sitemapEnabled] = await Promise.all([
@@ -21,9 +21,7 @@ export const robotsRoutes = {
         sitemapUrl: sitemapEnabled !== false ? `${ctx.site.url}/sitemap.xml` : undefined,
       });
 
-      return new Response(txt, {
-        headers: { "Content-Type": "text/plain; charset=utf-8" },
-      });
+      return { text: txt, contentType: "text/plain" };
     },
   },
 };

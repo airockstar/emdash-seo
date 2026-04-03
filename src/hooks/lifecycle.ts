@@ -8,6 +8,7 @@ interface LifecycleCtx {
   };
   cron: {
     schedule(name: string, opts: { schedule: string }): Promise<void>;
+    cancel(name: string): Promise<void>;
   };
 }
 
@@ -25,5 +26,15 @@ export const lifecycleHooks = {
         ctx.kv.set("settings:defaultRobots", DEFAULT_ROBOTS),
       ]);
     }
+  },
+
+  "plugin:deactivate": async (_event: unknown, ctx: LifecycleCtx) => {
+    await ctx.cron.cancel("recalculate-scores");
+    ctx.log.info("SEO Toolkit deactivated");
+  },
+
+  "plugin:uninstall": async (_event: unknown, ctx: LifecycleCtx) => {
+    await ctx.cron.cancel("recalculate-scores");
+    ctx.log.info("SEO Toolkit uninstalled");
   },
 };
