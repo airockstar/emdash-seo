@@ -9,33 +9,50 @@ interface StatusData {
   withoutOverrides: number;
 }
 
-interface SeoStatusWidgetProps {
+export interface SeoStatusWidgetProps {
   callRoute: (route: string) => Promise<unknown>;
 }
 
 export function SeoStatusWidget({ callRoute }: SeoStatusWidgetProps) {
   const [data, setData] = useState<StatusData | null>(null);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    callRoute("analytics/status").then((d) => setData(d as StatusData));
+    callRoute("analytics/status")
+      .then((d) => setData(d as StatusData))
+      .catch(() => setError(true));
   }, []);
 
-  if (!data) return <div>Loading...</div>;
+  if (error) return <div style={{ color: "#991b1b", fontSize: "0.8125rem" }}>Failed to load status.</div>;
+
+  if (!data) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="seo-skeleton" style={{ height: 20, width: `${60 + i * 10}%` }} />
+        ))}
+      </div>
+    );
+  }
 
   const items = [
-    { label: "Missing title", count: data.missingTitle, color: data.missingTitle > 0 ? "#d63031" : "#00b894" },
-    { label: "Missing description", count: data.missingDescription, color: data.missingDescription > 0 ? "#d63031" : "#00b894" },
-    { label: "Missing OG image", count: data.missingOgImage, color: data.missingOgImage > 0 ? "#e67700" : "#00b894" },
-    { label: "With overrides", count: data.withOverrides, color: "#0984e3" },
+    { label: "Missing title", count: data.missingTitle, bad: data.missingTitle > 0 },
+    { label: "Missing description", count: data.missingDescription, bad: data.missingDescription > 0 },
+    { label: "Missing OG image", count: data.missingOgImage, bad: data.missingOgImage > 0 },
+    { label: "With SEO overrides", count: data.withOverrides, bad: false },
   ];
 
   return (
     <div>
-      <div style={{ fontSize: 13, color: "#666", marginBottom: 12 }}>{data.total} content items</div>
+      <div style={{ fontSize: "0.75rem", color: "#6b7280", marginBottom: 12 }}>
+        {data.total} content items total
+      </div>
       {items.map((item) => (
-        <div key={item.label} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #f0f0f0" }}>
-          <span>{item.label}</span>
-          <span style={{ fontWeight: 600, color: item.color }}>{item.count}</span>
+        <div key={item.label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #f3f4f6" }}>
+          <span style={{ fontSize: "0.8125rem", color: "#374151" }}>{item.label}</span>
+          <span className={`seo-badge ${item.bad ? "seo-badge-error" : "seo-badge-success"}`}>
+            {item.count}
+          </span>
         </div>
       ))}
     </div>
