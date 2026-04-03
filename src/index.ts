@@ -14,12 +14,14 @@ import { robotsRoutes } from "./routes/robots.js";
 import { analyticsStatusRoutes } from "./routes/analytics-status.js";
 import { analyzeRoutes } from "./routes/analyze.js";
 import { scoresRoutes } from "./routes/scores.js";
+import { socialRoutes } from "./routes/social.js";
 
 const definition: PluginDefinition = {
   id: "@emdash-seo/toolkit",
   version: "0.1.0",
 
   capabilities: CAPABILITIES,
+  allowedHosts: ["api.twitter.com", "*.bsky.social"],
   storage: STORAGE,
 
   hooks: {
@@ -38,6 +40,7 @@ const definition: PluginDefinition = {
     ...analyticsStatusRoutes,
     ...analyzeRoutes,
     ...scoresRoutes,
+    ...socialRoutes,
   } as any,
 
   admin: {

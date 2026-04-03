@@ -80,4 +80,19 @@ export const SETTINGS_SCHEMA = {
   bingVerification: { type: "string" as const, label: "Bing Verification Code", default: "" },
   pinterestVerification: { type: "string" as const, label: "Pinterest Verification Code", default: "" },
   yandexVerification: { type: "string" as const, label: "Yandex Verification Code", default: "" },
+
+  // Phase 6: Social & Sharing
+  enableAutoPost: { type: "boolean" as const, label: "Auto-Post on Publish", default: false },
+  twitterApiKey: { type: "secret" as const, label: "Twitter API Key" },
+  twitterApiSecret: { type: "secret" as const, label: "Twitter API Secret" },
+  blueskyHandle: { type: "string" as const, label: "Bluesky Handle", default: "" },
+  blueskyAppPassword: { type: "secret" as const, label: "Bluesky App Password" },
+  socialPostTemplate: {
+    type: "string" as const,
+    label: "Social Post Template",
+    default: "New: {title} \u2014 {url}",
+  },
+
+  // Phase 7: Licensing
+  licenseKey: { type: "secret" as const, label: "License Key" },
 };

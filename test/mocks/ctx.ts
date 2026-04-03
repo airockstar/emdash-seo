@@ -100,6 +100,7 @@ export function createMockCtx(options: MockCtxOptions = {}) {
     storage: {
       overrides: createMockCollection(options.overrides ?? {}),
       scores: createMockCollection(options.scores ?? {}),
+      socialPosts: createMockCollection({}),
     },
     log: {
       debug: vi.fn(),
@@ -123,6 +124,7 @@ export function createMockCtx(options: MockCtxOptions = {}) {
         nextCursor: undefined,
       })),
     },
+    http: { fetch: vi.fn() },
     plugin: { id: "@emdash-seo/toolkit", version: "0.1.0" },
     cron: {
       schedule: vi.fn(),
