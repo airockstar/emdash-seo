@@ -8,6 +8,7 @@ import { checkSingleH1, checkHeadingHierarchy } from "../analysis/headings.js";
 import { checkImageAltText } from "../analysis/images.js";
 import { checkReadability } from "../analysis/readability.js";
 import { checkKeywordDensity, checkKeywordInFirstParagraph } from "../analysis/keywords.js";
+import { checkOgImage } from "../analysis/og-image.js";
 import { checkInternalLinks } from "../analysis/links.js";
 import { checkDuplicateTitle, checkDuplicateDescription } from "../analysis/duplicates.js";
 import { calculateScore } from "../analysis/score.js";
@@ -72,7 +73,10 @@ export const analyzeRoutes = {
       const keyword = overrides?.focusKeyword;
       const blocks = content.body ?? [];
 
+      const ogImage = overrides?.ogImage ?? content.image;
       const checks = runFreeChecks(title, description, keyword, blocks);
+      const ogCheck = await checkOgImage(ogImage, ctx.media);
+      checks.push(ogCheck);
       const score = calculateScore(checks);
 
       await ctx.storage.scores.put(ctx.input.contentId, {

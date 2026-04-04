@@ -124,6 +124,14 @@ export function createMockCtx(options: MockCtxOptions = {}) {
         nextCursor: undefined,
       })),
     },
+    media: {
+      get: vi.fn(async (id: string) => {
+        if (id === "img-1") return { url: "https://example.com/img.jpg", width: 1200, height: 630, type: "image/jpeg" };
+        if (id === "img-small") return { url: "https://example.com/small.jpg", width: 400, height: 300, type: "image/jpeg" };
+        return null;
+      }),
+      list: vi.fn(async () => ({ items: [], nextCursor: undefined })),
+    },
     users: {
       get: vi.fn(async (id: string) => {
         if (id === "author-1") return { name: "Jane Doe", email: "jane@example.com", avatar: "https://example.com/jane.jpg" };

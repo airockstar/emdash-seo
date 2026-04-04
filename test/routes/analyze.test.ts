@@ -31,7 +31,7 @@ describe("analyze route (free)", () => {
 
     expect(result.score).toBeTypeOf("number");
     expect(result.checks).toBeInstanceOf(Array);
-    expect(result.checks.length).toBe(7);
+    expect(result.checks.length).toBe(8);
   });
 
   it("stores score in scores collection", async () => {
