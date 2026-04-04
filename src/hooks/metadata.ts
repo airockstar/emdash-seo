@@ -1,6 +1,7 @@
 import type { SeoOverrides, PublicPageContext, SeoDefaults } from "../types.js";
 import { DEFAULT_TITLE_TEMPLATE, DEFAULT_SEPARATOR, DEFAULT_ROBOTS } from "../constants.js";
 import { resolveSeoData } from "../utils/fallback-chain.js";
+import { getSeoDefaults, getVerificationSettings } from "../utils/kv-settings.js";
 import {
   buildArticleSchema,
   buildWebPageSchema,
@@ -12,6 +13,7 @@ import {
 interface MetadataCtx {
   kv: {
     get<T>(key: string): Promise<T | null>;
+    set(key: string, value: unknown): Promise<void>;
   };
   storage: {
     overrides: {
@@ -32,48 +34,26 @@ export async function metadataHandler(
 ): Promise<MetadataContribution[]> {
   const { page } = event;
 
-  const [
-    siteName,
-    titleTemplate,
-    titleSeparator,
-    defaultOgImage,
-    twitterHandle,
-    orgName,
-    orgLogoUrl,
-    defaultRobots,
-    overrides,
-    googleV,
-    bingV,
-    pinterestV,
-    yandexV,
-  ] = await Promise.all([
-    ctx.kv.get<string>("settings:siteName"),
-    ctx.kv.get<string>("settings:titleTemplate"),
-    ctx.kv.get<string>("settings:titleSeparator"),
-    ctx.kv.get<string>("settings:defaultOgImage"),
-    ctx.kv.get<string>("settings:twitterHandle"),
-    ctx.kv.get<string>("settings:orgName"),
-    ctx.kv.get<string>("settings:orgLogoUrl"),
-    ctx.kv.get<string>("settings:defaultRobots"),
+  const [seoSettings, verificationSettings, overrides] = await Promise.all([
+    getSeoDefaults(ctx.kv),
+    getVerificationSettings(ctx.kv),
     page.content
       ? ctx.storage.overrides.get(page.content.id)
       : Promise.resolve(null),
-    ctx.kv.get<string>("settings:googleVerification"),
-    ctx.kv.get<string>("settings:bingVerification"),
-    ctx.kv.get<string>("settings:pinterestVerification"),
-    ctx.kv.get<string>("settings:yandexVerification"),
   ]);
 
   const defaults: SeoDefaults = {
-    siteName: siteName ?? "",
-    titleTemplate: titleTemplate ?? DEFAULT_TITLE_TEMPLATE,
-    titleSeparator: titleSeparator ?? DEFAULT_SEPARATOR,
-    defaultOgImage: defaultOgImage ?? "",
-    twitterHandle: twitterHandle ?? "",
-    orgName: orgName ?? "",
-    orgLogoUrl: orgLogoUrl ?? "",
-    defaultRobots: defaultRobots ?? DEFAULT_ROBOTS,
+    siteName: seoSettings.siteName || "",
+    titleTemplate: seoSettings.titleTemplate || DEFAULT_TITLE_TEMPLATE,
+    titleSeparator: seoSettings.titleSeparator || DEFAULT_SEPARATOR,
+    defaultOgImage: seoSettings.defaultOgImage || "",
+    twitterHandle: seoSettings.twitterHandle || "",
+    orgName: seoSettings.orgName || "",
+    orgLogoUrl: seoSettings.orgLogoUrl || "",
+    defaultRobots: seoSettings.defaultRobots || DEFAULT_ROBOTS,
   };
+
+  const { googleVerification: googleV, bingVerification: bingV, pinterestVerification: pinterestV, yandexVerification: yandexV } = verificationSettings;
 
   const resolved = resolveSeoData(overrides, page, defaults);
   const contributions: MetadataContribution[] = [];

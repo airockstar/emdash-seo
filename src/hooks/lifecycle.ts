@@ -1,4 +1,5 @@
 import { DEFAULT_TITLE_TEMPLATE, DEFAULT_ROBOTS } from "../constants.js";
+import { rebuildCompositeKeys } from "../utils/kv-settings.js";
 
 interface LifecycleCtx {
   log: { info(msg: string): void };
@@ -15,7 +16,10 @@ interface LifecycleCtx {
 export const lifecycleHooks = {
   "plugin:activate": async (_event: unknown, ctx: LifecycleCtx) => {
     ctx.log.info("SEO Toolkit activated");
-    await ctx.cron.schedule("recalculate-scores", { schedule: "0 3 * * 0" });
+    await Promise.all([
+      ctx.cron.schedule("recalculate-scores", { schedule: "0 3 * * 0" }),
+      rebuildCompositeKeys(ctx.kv),
+    ]);
   },
 
   "plugin:install": async (_event: unknown, ctx: LifecycleCtx) => {
@@ -26,6 +30,7 @@ export const lifecycleHooks = {
         ctx.kv.set("settings:defaultRobots", DEFAULT_ROBOTS),
       ]);
     }
+    await rebuildCompositeKeys(ctx.kv);
   },
 
   "plugin:deactivate": async (_event: unknown, ctx: LifecycleCtx) => {

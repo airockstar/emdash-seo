@@ -1,6 +1,9 @@
+import { getAnalyticsSettings, getCustomScriptsSettings } from "../utils/kv-settings.js";
+
 interface FragmentsCtx {
   kv: {
     get<T>(key: string): Promise<T | null>;
+    set(key: string, value: unknown): Promise<void>;
   };
 }
 
@@ -108,22 +111,17 @@ export async function fragmentsHandler(
   _event: unknown,
   ctx: FragmentsCtx,
 ): Promise<Fragment[] | null> {
-  const [gaId, gtmId, cfToken, fbPixelId, customHead, customBody] =
-    await Promise.all([
-      ctx.kv.get<string>("settings:googleAnalyticsId"),
-      ctx.kv.get<string>("settings:gtmContainerId"),
-      ctx.kv.get<string>("settings:cfAnalyticsToken"),
-      ctx.kv.get<string>("settings:facebookPixelId"),
-      ctx.kv.get<string>("settings:customHeadScripts"),
-      ctx.kv.get<string>("settings:customBodyScripts"),
-    ]);
+  const [analytics, scripts] = await Promise.all([
+    getAnalyticsSettings(ctx.kv),
+    getCustomScriptsSettings(ctx.kv),
+  ]);
 
   const fragments: Fragment[] = [
-    ...injectGA4(gaId ?? ""),
-    ...injectGTM(gtmId ?? ""),
-    ...injectCfAnalytics(cfToken ?? ""),
-    ...injectFacebookPixel(fbPixelId ?? ""),
-    ...injectCustomScripts(customHead ?? "", customBody ?? ""),
+    ...injectGA4(analytics.googleAnalyticsId),
+    ...injectGTM(analytics.gtmContainerId),
+    ...injectCfAnalytics(analytics.cfAnalyticsToken),
+    ...injectFacebookPixel(analytics.facebookPixelId),
+    ...injectCustomScripts(scripts.customHeadScripts, scripts.customBodyScripts),
   ];
 
   return fragments.length > 0 ? fragments : null;
