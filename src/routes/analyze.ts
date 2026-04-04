@@ -13,6 +13,7 @@ import { checkInternalLinks } from "../analysis/links.js";
 import { checkDuplicateTitle, checkDuplicateDescription } from "../analysis/duplicates.js";
 import { calculateScore } from "../analysis/score.js";
 import { checkLicenseStatus, isFeatureAllowed } from "../utils/license.js";
+import { suggestInternalLinks } from "../analysis/link-suggestions.js";
 
 function runFreeChecks(
   title: string | undefined,
@@ -136,6 +137,34 @@ export const analyzeRoutes = {
       });
 
       return { score, checks };
+    },
+  },
+
+  "analyze/link-suggestions": {
+    input: AnalyzeInput,
+    handler: async (ctx: any) => {
+      const license = await checkLicenseStatus(ctx);
+      if (!isFeatureAllowed("internal-link-suggestions", license.tier)) {
+        return { error: "pro_required", message: "Internal link suggestions require a Pro license" };
+      }
+
+      const content = await ctx.content.get(ctx.input.contentId);
+      if (!content) {
+        return { error: "not_found", message: "Content not found" };
+      }
+
+      const blocks = content.body ?? [];
+      const text = extractPlainText(blocks);
+
+      const allContentResult = await ctx.content.list();
+      const suggestions = suggestInternalLinks(
+        text,
+        ctx.input.contentId,
+        allContentResult.items,
+        ctx.site.url,
+      );
+
+      return { suggestions };
     },
   },
 };
