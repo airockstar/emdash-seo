@@ -1,5 +1,5 @@
 import React from "react";
-import { colors } from "../tokens.js";
+import { colors, fontSize } from "../tokens.js";
 
 export function EmptyState({ title, description }: { title: string; description: string }) {
   return (
@@ -45,5 +45,3 @@ export function parseDomain(url: string): string {
     return url;
   }
 }
-
-const fontSize = { sm: "0.8125rem" };

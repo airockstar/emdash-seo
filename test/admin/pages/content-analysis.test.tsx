@@ -343,14 +343,14 @@ describe("ContentAnalysisPage", () => {
       { targetTitle: "Another Post", targetUrl: "/blog/another", relevanceScore: 0.72 },
     ];
     const callRoute = vi.fn().mockImplementation((route: string) => {
-      if (route === "analyze") return Promise.resolve({ score: 75, checks: makeChecks() });
+      if (route === "analyze/advanced") return Promise.resolve({ score: 75, checks: makeChecks() });
       if (route === "analyze/link-suggestions") return Promise.resolve({ suggestions });
       return Promise.resolve({});
     });
     render(<ContentAnalysisPage callRoute={callRoute} />);
 
     fireEvent.change(screen.getByLabelText("Content ID"), { target: { value: "post-1" } });
-    fireEvent.click(screen.getByText("Analyze"));
+    fireEvent.click(screen.getByText("Advanced (Pro)"));
 
     await waitFor(() => {
       expect(screen.getByText("Related Post")).toBeDefined();

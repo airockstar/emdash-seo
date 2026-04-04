@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { SerpPreview } from "../components/serp-preview.js";
 import { SocialPreview } from "../components/social-preview.js";
 import { CharacterCounter } from "../components/character-counter.js";
-import { EmptyState } from "../components/shared.js";
+import { EmptyState, ErrorBanner } from "../components/shared.js";
 import { colors } from "../tokens.js";
 
 interface Override {
@@ -31,6 +31,7 @@ export function SeoOverridesPage({ callRoute, siteUrl }: SeoOverridesPageProps) 
   const [form, setForm] = useState({ title: "", description: "", focusKeyword: "", robots: "", canonical: "", ogImage: "", schemaType: "" });
   const [filter, setFilter] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const lastFilterRef = useRef("");
   const editRef = useRef<HTMLDivElement>(null);
 
@@ -38,26 +39,37 @@ export function SeoOverridesPage({ callRoute, siteUrl }: SeoOverridesPageProps) 
 
   async function loadOverrides() {
     setLoading(true);
+    setError("");
     try {
       const result = await callRoute("overrides/list", { collection: filter || undefined }) as { items: Override[] };
       setOverrides(result.items ?? []);
+    } catch (e: any) {
+      setError(e.message ?? "Failed to load overrides");
     } finally {
       setLoading(false);
     }
   }
 
   async function save(contentId: string) {
-    const override = overrides.find((o) => o.id === contentId);
-    const { schemaType, ...rest } = form;
-    await callRoute("overrides/save", { contentId, collection: override?.data.collection ?? "", ...rest, schemaType: schemaType || undefined });
-    setEditing(null);
-    loadOverrides();
+    try {
+      const override = overrides.find((o) => o.id === contentId);
+      const { schemaType, ...rest } = form;
+      await callRoute("overrides/save", { contentId, collection: override?.data.collection ?? "", ...rest, schemaType: schemaType || undefined });
+      setEditing(null);
+      loadOverrides();
+    } catch (e: any) {
+      setError(e.message ?? "Failed to save");
+    }
   }
 
   async function remove(contentId: string) {
     if (!confirm(`Delete SEO overrides for "${contentId}"?`)) return;
-    await callRoute("overrides/delete", { contentId });
-    loadOverrides();
+    try {
+      await callRoute("overrides/delete", { contentId });
+      loadOverrides();
+    } catch (e: any) {
+      setError(e.message ?? "Failed to delete");
+    }
   }
 
   function startEdit(override: Override) {
@@ -88,6 +100,8 @@ export function SeoOverridesPage({ callRoute, siteUrl }: SeoOverridesPageProps) 
         <h2 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 600 }}>SEO Overrides</h2>
         <span style={{ fontSize: "0.8125rem", color: colors.textSecondary }}>{overrides.length} items</span>
       </div>
+
+      {error && <ErrorBanner message={error} />}
 
       <div style={{ marginBottom: 16 }}>
         <input

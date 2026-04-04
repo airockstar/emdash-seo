@@ -29,9 +29,12 @@ export function ContentAnalysisPage({ callRoute }: ContentAnalysisPageProps) {
         setResult(null);
       } else {
         setResult(data);
-        callRoute("analyze/link-suggestions", { contentId: contentId.trim() })
-          .then((d: any) => setLinkSuggestions(d.suggestions ?? []))
-          .catch(() => setLinkSuggestions([]));
+        setLinkSuggestions([]);
+        if (advanced) {
+          callRoute("analyze/link-suggestions", { contentId: contentId.trim() })
+            .then((d: any) => setLinkSuggestions(d.suggestions ?? []))
+            .catch(() => setLinkSuggestions([]));
+        }
       }
     } catch (e: any) {
       setError(e.message ?? "Analysis failed");
