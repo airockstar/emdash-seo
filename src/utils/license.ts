@@ -1,3 +1,5 @@
+import { verifyJwt } from "./jwt.js";
+
 export type LicenseTier = "free" | "pro" | "agency";
 
 export interface LicenseInfo {
@@ -18,6 +20,7 @@ const FEATURE_TIERS: Record<string, LicenseTier> = {
   readability: "pro",
   "bulk-editing": "pro",
   "social-auto-post": "pro",
+  "internal-link-suggestions": "pro",
   "multi-site": "agency",
   "white-label": "agency",
 };
@@ -28,52 +31,46 @@ const TIER_LEVEL: Record<LicenseTier, number> = {
   agency: 2,
 };
 
-/**
- * Decode and validate a license key.
- * License keys are base64-encoded JSON: { tier, exp, sub }
- * In production, these would be signed JWTs verified with a public key.
- * For MVP, we use simple base64 encoding with expiry check.
- */
-export function validateLicense(key: string): LicenseInfo {
-  const FREE: LicenseInfo = { tier: "free", valid: false, expiresAt: null, siteLimit: 1 };
+const FREE: LicenseInfo = { tier: "free", valid: false, expiresAt: null, siteLimit: 1 };
 
+/**
+ * Validate a license key (JWT RS256 format only).
+ * License keys are signed JWTs with payload: { tier, exp, sub }
+ */
+export async function validateLicense(key: string): Promise<LicenseInfo> {
   if (!key) return FREE;
 
-  try {
-    const decoded = JSON.parse(atob(key));
-    const tier = decoded.tier as LicenseTier;
-    // TODO: Replace with signed JWT verification before production launch
-    if (!tier || !(tier in TIER_LEVEL)) return FREE;
+  const payload = await verifyJwt(key);
+  if (!payload) return FREE;
 
-    const expiresAt = decoded.exp ? new Date(decoded.exp).toISOString() : null;
+  const tier = payload.tier as LicenseTier;
+  if (!tier || !(tier in TIER_LEVEL)) return FREE;
 
-    // Check expiry (with 7-day grace period)
-    if (decoded.exp) {
-      const expiry = new Date(decoded.exp);
-      const grace = new Date(expiry.getTime() + 7 * 24 * 60 * 60 * 1000);
-      if (new Date() > grace) {
-        return { tier: "free", valid: false, expiresAt, siteLimit: 1 };
-      }
+  let expiresAt: string | null = null;
+  if (payload.exp) {
+    const expiryDate = new Date(payload.exp * 1000);
+    expiresAt = expiryDate.toISOString();
+
+    // 7-day grace period
+    const grace = new Date(expiryDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+    if (new Date() > grace) {
+      return { tier: "free", valid: false, expiresAt, siteLimit: 1 };
     }
-
-    return {
-      tier,
-      valid: true,
-      expiresAt,
-      siteLimit: tier === "agency" ? 999 : 1,
-    };
-  } catch {
-    return FREE;
   }
+
+  return {
+    tier,
+    valid: true,
+    expiresAt,
+    siteLimit: tier === "agency" ? 999 : 1,
+  };
 }
 
 export async function checkLicenseStatus(ctx: {
   kv: { get(key: string): Promise<unknown> };
 }): Promise<LicenseInfo> {
   const key = (await ctx.kv.get("settings:licenseKey")) as string | null;
-  if (!key) {
-    return { tier: "free", valid: false, expiresAt: null, siteLimit: 1 };
-  }
+  if (!key) return FREE;
   return validateLicense(key);
 }
 

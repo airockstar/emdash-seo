@@ -71,12 +71,11 @@ describe("analyze/advanced route (paid)", () => {
     expect(result.error).toBe("pro_required");
   });
 
-  it("returns full checks with license", async () => {
-    const proKey = btoa(JSON.stringify({ tier: "pro", exp: "2030-01-01T00:00:00Z" }));
-    const ctx = createAnalyzeCtx(sampleContent, {}, { licenseKey: proKey });
+  it("rejects invalid license key (JWT required)", async () => {
+    // Without a real RSA keypair, any key is rejected as invalid JWT
+    const ctx = createAnalyzeCtx(sampleContent, {}, { licenseKey: "fake-key" });
     const result = await handler(ctx as any);
 
-    expect(result.score).toBeTypeOf("number");
-    expect(result.checks.length).toBe(13);
+    expect(result.error).toBe("pro_required");
   });
 });

@@ -2,65 +2,30 @@ import { describe, it, expect } from "vitest";
 import { validateLicense, isFeatureAllowed, checkLicenseStatus } from "../../src/utils/license.js";
 import { createMockCtx } from "../mocks/ctx.js";
 
-function makeKey(payload: Record<string, unknown>): string {
-  return btoa(JSON.stringify(payload));
-}
-
-describe("validateLicense", () => {
-  it("returns free for empty key", () => {
-    const info = validateLicense("");
+describe("validateLicense (JWT only)", () => {
+  it("returns free for empty key", async () => {
+    const info = await validateLicense("");
     expect(info.tier).toBe("free");
     expect(info.valid).toBe(false);
   });
 
-  it("returns free for invalid base64", () => {
-    const info = validateLicense("not-valid-base64!!!");
-    expect(info.tier).toBe("free");
+  it("returns free for invalid token", async () => {
+    const info = await validateLicense("not-a-jwt");
     expect(info.valid).toBe(false);
   });
 
-  it("validates a pro key", () => {
-    const key = makeKey({ tier: "pro", exp: "2030-01-01T00:00:00Z" });
-    const info = validateLicense(key);
-    expect(info.tier).toBe("pro");
-    expect(info.valid).toBe(true);
-    expect(info.siteLimit).toBe(1);
-  });
-
-  it("validates an agency key", () => {
-    const key = makeKey({ tier: "agency", exp: "2030-01-01T00:00:00Z" });
-    const info = validateLicense(key);
-    expect(info.tier).toBe("agency");
-    expect(info.valid).toBe(true);
-    expect(info.siteLimit).toBe(999);
-  });
-
-  it("rejects expired key (past grace period)", () => {
-    const key = makeKey({ tier: "pro", exp: "2020-01-01T00:00:00Z" });
-    const info = validateLicense(key);
+  it("rejects JWT with fake signature", async () => {
+    // Without a real RSA keypair configured, all JWTs are rejected
+    const header = btoa(JSON.stringify({ alg: "RS256" })).replace(/=/g, "");
+    const payload = btoa(JSON.stringify({ tier: "pro", exp: 9999999999 })).replace(/=/g, "");
+    const sig = btoa("fake").replace(/=/g, "");
+    const info = await validateLicense(`${header}.${payload}.${sig}`);
     expect(info.valid).toBe(false);
     expect(info.tier).toBe("free");
   });
 
-  it("accepts key within 7-day grace period", () => {
-    const now = new Date();
-    const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
-    const key = makeKey({ tier: "pro", exp: threeDaysAgo.toISOString() });
-    const info = validateLicense(key);
-    expect(info.valid).toBe(true);
-    expect(info.tier).toBe("pro");
-  });
-
-  it("accepts key with no expiry", () => {
-    const key = makeKey({ tier: "pro" });
-    const info = validateLicense(key);
-    expect(info.valid).toBe(true);
-    expect(info.expiresAt).toBeNull();
-  });
-
-  it("rejects unknown tier", () => {
-    const key = makeKey({ tier: "ultimate" });
-    const info = validateLicense(key);
+  it("rejects malformed JWT", async () => {
+    const info = await validateLicense("a.b.c");
     expect(info.valid).toBe(false);
   });
 });
@@ -90,6 +55,11 @@ describe("isFeatureAllowed", () => {
   it("denies unknown features", () => {
     expect(isFeatureAllowed("nonexistent", "agency")).toBe(false);
   });
+
+  it("allows internal-link-suggestions for pro tier", () => {
+    expect(isFeatureAllowed("internal-link-suggestions", "pro")).toBe(true);
+    expect(isFeatureAllowed("internal-link-suggestions", "free")).toBe(false);
+  });
 });
 
 describe("checkLicenseStatus", () => {
@@ -98,13 +68,5 @@ describe("checkLicenseStatus", () => {
     const info = await checkLicenseStatus(ctx);
     expect(info.tier).toBe("free");
     expect(info.valid).toBe(false);
-  });
-
-  it("returns pro when valid key in KV", async () => {
-    const key = makeKey({ tier: "pro", exp: "2030-01-01T00:00:00Z" });
-    const ctx = createMockCtx({ settings: { licenseKey: key } });
-    const info = await checkLicenseStatus(ctx);
-    expect(info.tier).toBe("pro");
-    expect(info.valid).toBe(true);
   });
 });

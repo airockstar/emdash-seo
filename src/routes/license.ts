@@ -7,7 +7,7 @@ export const licenseRoutes = {
   "license/validate": {
     input: ValidateInput,
     handler: async (ctx: any) => {
-      const info = validateLicense(ctx.input.key);
+      const info = await validateLicense(ctx.input.key);
       if (info.valid) {
         await ctx.kv.set("settings:licenseKey", ctx.input.key);
       }
