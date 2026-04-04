@@ -277,4 +277,61 @@ describe("metadataHandler", () => {
 
     expect(desc).toBeUndefined();
   });
+
+  it("produces hreflang tags when enabled with valid mappings", async () => {
+    const mappings = JSON.stringify([
+      { lang: "en", urlPrefix: "https://en.example.com" },
+      { lang: "fr", urlPrefix: "https://fr.example.com" },
+    ]);
+    const ctx = createCtx({ hreflangEnabled: true, hreflangMappings: mappings });
+    const result = await metadataHandler({ page: articlePage }, ctx);
+
+    const hreflangLinks = result.filter(
+      (c) => c.kind === "link" && c.rel === "alternate" && c.hreflang,
+    );
+
+    expect(hreflangLinks.length).toBe(3); // en, fr, x-default
+    expect(hreflangLinks.find((l) => l.hreflang === "en")?.href).toBe(
+      "https://en.example.com/blog/my-post",
+    );
+    expect(hreflangLinks.find((l) => l.hreflang === "fr")?.href).toBe(
+      "https://fr.example.com/blog/my-post",
+    );
+    expect(hreflangLinks.find((l) => l.hreflang === "x-default")?.href).toBe(
+      "https://example.com/blog/my-post",
+    );
+  });
+
+  it("skips hreflang tags when disabled", async () => {
+    const mappings = JSON.stringify([
+      { lang: "en", urlPrefix: "https://en.example.com" },
+    ]);
+    const ctx = createCtx({ hreflangEnabled: false, hreflangMappings: mappings });
+    const result = await metadataHandler({ page: articlePage }, ctx);
+
+    const hreflangLinks = result.filter(
+      (c) => c.kind === "link" && c.rel === "alternate" && c.hreflang,
+    );
+    expect(hreflangLinks.length).toBe(0);
+  });
+
+  it("skips hreflang tags when mappings is invalid JSON", async () => {
+    const ctx = createCtx({ hreflangEnabled: true, hreflangMappings: "not-json" });
+    const result = await metadataHandler({ page: articlePage }, ctx);
+
+    const hreflangLinks = result.filter(
+      (c) => c.kind === "link" && c.rel === "alternate" && c.hreflang,
+    );
+    expect(hreflangLinks.length).toBe(0);
+  });
+
+  it("skips hreflang tags when mappings is empty", async () => {
+    const ctx = createCtx({ hreflangEnabled: true, hreflangMappings: "" });
+    const result = await metadataHandler({ page: articlePage }, ctx);
+
+    const hreflangLinks = result.filter(
+      (c) => c.kind === "link" && c.rel === "alternate" && c.hreflang,
+    );
+    expect(hreflangLinks.length).toBe(0);
+  });
 });

@@ -38,12 +38,14 @@ export async function metadataHandler(
 ): Promise<MetadataContribution[]> {
   const { page } = event;
 
-  const [seoSettings, verificationSettings, overrides] = await Promise.all([
+  const [seoSettings, verificationSettings, overrides, hreflangEnabled, hreflangMappingsRaw] = await Promise.all([
     getSeoDefaults(ctx.kv),
     getVerificationSettings(ctx.kv),
     page.content
       ? ctx.storage.overrides.get(page.content.id)
       : Promise.resolve(null),
+    ctx.kv.get<boolean>("settings:hreflangEnabled"),
+    ctx.kv.get<string>("settings:hreflangMappings"),
   ]);
 
   const defaults: SeoDefaults = {
@@ -272,6 +274,34 @@ export async function metadataHandler(
   for (const [name, value] of verifications) {
     if (value && VERIFICATION_PATTERN.test(value)) {
       contributions.push({ kind: "meta", name, content: value });
+    }
+  }
+
+  // hreflang tags for multi-language support
+  if (hreflangEnabled && hreflangMappingsRaw) {
+    try {
+      const mappings = JSON.parse(hreflangMappingsRaw) as Array<{ lang: string; urlPrefix: string }>;
+      if (Array.isArray(mappings)) {
+        for (const mapping of mappings) {
+          if (mapping.lang && mapping.urlPrefix) {
+            contributions.push({
+              kind: "link",
+              rel: "alternate",
+              href: mapping.urlPrefix + page.path,
+              hreflang: mapping.lang,
+            });
+          }
+        }
+        // x-default points to current site URL + path
+        contributions.push({
+          kind: "link",
+          rel: "alternate",
+          href: ctx.site.url + page.path,
+          hreflang: "x-default",
+        });
+      }
+    } catch {
+      // Invalid JSON — skip hreflang tags
     }
   }
 

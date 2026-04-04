@@ -93,6 +93,10 @@ export const SETTINGS_SCHEMA = {
     default: "New: {title} \u2014 {url}",
   },
 
+  // Phase 8: hreflang / Multi-Language
+  hreflangEnabled: { type: "boolean" as const, label: "Enable hreflang Tags", default: false },
+  hreflangMappings: { type: "string" as const, label: "Language Mappings (JSON)", default: "", multiline: true },
+
   // Phase 7: Licensing
   licenseKey: { type: "secret" as const, label: "License Key" },
 };
