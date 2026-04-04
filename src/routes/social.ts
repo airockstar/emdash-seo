@@ -45,7 +45,7 @@ export const socialRoutes = {
         description: content.description,
       };
 
-      const results = await Promise.all(platforms.map(async (platform: string) => {
+      const settled = await Promise.allSettled(platforms.map(async (platform: string) => {
         const existing = await ctx.storage.socialPosts.query({
           where: { contentId, platform },
           limit: 1,
@@ -79,6 +79,10 @@ export const socialRoutes = {
         }
         return result;
       }));
+
+      const results = settled.map((s) =>
+        s.status === "fulfilled" ? s.value : { platform: "unknown", success: false, error: (s.reason as Error)?.message ?? "Unknown error" },
+      );
 
       return { results };
     },

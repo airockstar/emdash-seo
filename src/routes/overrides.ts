@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { checkLicenseStatus, isFeatureAllowed } from "../utils/license.js";
 
-const SaveSchema = z.object({
+const OverrideFields = z.object({
   contentId: z.string(),
   collection: z.string(),
   title: z.string().optional(),
@@ -14,32 +14,15 @@ const SaveSchema = z.object({
   schemaData: z.record(z.string(), z.unknown()).optional(),
 });
 
+const SaveSchema = OverrideFields;
 const GetSchema = z.object({ contentId: z.string() });
-
+const DeleteSchema = z.object({ contentId: z.string() });
 const ListSchema = z.object({
   collection: z.string().optional(),
   cursor: z.string().optional(),
   limit: z.number().min(1).max(100).optional(),
 });
-
-const DeleteSchema = z.object({ contentId: z.string() });
-
-const BulkSaveSchema = z.object({
-  items: z.array(
-    z.object({
-      contentId: z.string(),
-      collection: z.string(),
-      title: z.string().optional(),
-      description: z.string().optional(),
-      ogImage: z.string().optional(),
-      robots: z.string().optional(),
-      canonical: z.string().optional(),
-      focusKeyword: z.string().optional(),
-      schemaType: z.enum(["faq", "howto", "product", "localBusiness", "event"]).optional(),
-      schemaData: z.record(z.string(), z.unknown()).optional(),
-    }),
-  ),
-});
+const BulkSaveSchema = z.object({ items: z.array(OverrideFields) });
 
 export const overrideRoutes = {
   "overrides/save": {

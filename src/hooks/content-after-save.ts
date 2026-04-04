@@ -11,35 +11,39 @@ import { checkLicenseStatus, isFeatureAllowed } from "../utils/license.js";
 export const contentAfterSaveHook = async (event: any, ctx: any) => {
   const { content, collection, isNew } = event;
 
-  // Auto-analyze
-  const overrides = await ctx.storage.overrides.get(content.id);
-  const title = overrides?.title ?? content.title;
-  const description = overrides?.description ?? content.description;
-  const keyword = overrides?.focusKeyword;
-  const blocks = content.body ?? [];
+  // Auto-analyze (wrapped in try/catch so analysis failure doesn't block the save pipeline)
+  try {
+    const overrides = await ctx.storage.overrides.get(content.id);
+    const title = overrides?.title ?? content.title;
+    const description = overrides?.description ?? content.description;
+    const keyword = overrides?.focusKeyword;
+    const blocks = content.body ?? [];
 
-  const headings = extractHeadings(blocks);
-  const images = extractImages(blocks);
+    const headings = extractHeadings(blocks);
+    const images = extractImages(blocks);
 
-  const checks = [
-    checkTitleLength(title),
-    checkTitleKeyword(title, keyword),
-    checkDescriptionLength(description),
-    checkDescriptionKeyword(description, keyword),
-    checkSingleH1(headings),
-    checkHeadingHierarchy(headings),
-    checkImageAltText(images),
-  ];
+    const checks = [
+      checkTitleLength(title),
+      checkTitleKeyword(title, keyword),
+      checkDescriptionLength(description),
+      checkDescriptionKeyword(description, keyword),
+      checkSingleH1(headings),
+      checkHeadingHierarchy(headings),
+      checkImageAltText(images),
+    ];
 
-  const score = calculateScore(checks);
+    const score = calculateScore(checks);
 
-  await ctx.storage.scores.put(content.id, {
-    contentId: content.id,
-    collection,
-    score,
-    checks,
-    analyzedAt: new Date().toISOString(),
-  });
+    await ctx.storage.scores.put(content.id, {
+      contentId: content.id,
+      collection,
+      score,
+      checks,
+      analyzedAt: new Date().toISOString(),
+    });
+  } catch (e: any) {
+    ctx.log.error(`SEO auto-analysis failed for ${content.id}: ${e.message}`);
+  }
 
   // Auto-post on new published content
   if (!isNew || content.status !== "published") return;
