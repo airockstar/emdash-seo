@@ -7,6 +7,7 @@ import { calculateScore } from "../analysis/score.js";
 import { postToTwitter } from "../utils/social/twitter.js";
 import { postToBluesky } from "../utils/social/bluesky.js";
 import { checkLicenseStatus, isFeatureAllowed } from "../utils/license.js";
+import { pingIndexNow } from "../utils/indexnow.js";
 
 export const contentAfterSaveHook = async (event: any, ctx: any) => {
   const { content, collection, isNew } = event;
@@ -43,6 +44,23 @@ export const contentAfterSaveHook = async (event: any, ctx: any) => {
     });
   } catch (e: any) {
     ctx.log.error(`SEO auto-analysis failed for ${content.id}: ${e.message}`);
+  }
+
+  // IndexNow ping for new published content
+  if (isNew && content.status === "published") {
+    try {
+      const indexNowApiKey = (await ctx.kv.get("settings:indexNowApiKey")) as string | null;
+      if (indexNowApiKey) {
+        const pageUrl = `${ctx.site.url}/${collection}/${content.slug ?? content.id}`;
+        const host = new URL(ctx.site.url).hostname;
+        const result = await pingIndexNow(ctx.http, pageUrl, indexNowApiKey, host);
+        if (!result.success) {
+          ctx.log.warn(`IndexNow ping failed for ${content.id}: ${result.error}`);
+        }
+      }
+    } catch (e: any) {
+      ctx.log.warn(`IndexNow ping error for ${content.id}: ${e.message}`);
+    }
   }
 
   // Auto-post on new published content

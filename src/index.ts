@@ -22,7 +22,7 @@ const definition: PluginDefinition = {
   version: "0.1.0",
 
   capabilities: CAPABILITIES,
-  allowedHosts: ["api.twitter.com", "api.x.com", "bsky.social", "*.bsky.social"],
+  allowedHosts: ["api.twitter.com", "api.x.com", "bsky.social", "*.bsky.social", "api.indexnow.org"],
   storage: STORAGE,
 
   hooks: {

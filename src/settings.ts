@@ -97,6 +97,9 @@ export const SETTINGS_SCHEMA = {
   hreflangEnabled: { type: "boolean" as const, label: "Enable hreflang Tags", default: false },
   hreflangMappings: { type: "string" as const, label: "Language Mappings (JSON)", default: "", multiline: true },
 
+  // Phase 11: IndexNow
+  indexNowApiKey: { type: "string" as const, label: "IndexNow API Key", default: "" },
+
   // Phase 7: Licensing
   licenseKey: { type: "secret" as const, label: "License Key" },
 };
