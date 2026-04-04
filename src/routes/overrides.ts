@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { checkLicenseStatus, isFeatureAllowed } from "../utils/license.js";
 
 const SaveSchema = z.object({
   contentId: z.string(),
@@ -22,6 +23,23 @@ const ListSchema = z.object({
 });
 
 const DeleteSchema = z.object({ contentId: z.string() });
+
+const BulkSaveSchema = z.object({
+  items: z.array(
+    z.object({
+      contentId: z.string(),
+      collection: z.string(),
+      title: z.string().optional(),
+      description: z.string().optional(),
+      ogImage: z.string().optional(),
+      robots: z.string().optional(),
+      canonical: z.string().optional(),
+      focusKeyword: z.string().optional(),
+      schemaType: z.enum(["faq", "howto", "product", "localBusiness", "event"]).optional(),
+      schemaData: z.record(z.string(), z.unknown()).optional(),
+    }),
+  ),
+});
 
 export const overrideRoutes = {
   "overrides/save": {
@@ -64,6 +82,24 @@ export const overrideRoutes = {
     handler: async (ctx: any) => {
       const deleted = await ctx.storage.overrides.delete(ctx.input.contentId);
       return { success: true, deleted };
+    },
+  },
+
+  "overrides/bulk-save": {
+    input: BulkSaveSchema,
+    handler: async (ctx: any) => {
+      const license = await checkLicenseStatus(ctx);
+      if (!isFeatureAllowed("bulk-editing", license.tier)) {
+        return { error: "pro_required", message: "Bulk editing requires a Pro license" };
+      }
+
+      const { items } = ctx.input;
+      const entries = items.map((item: any) => {
+        const { contentId, ...seoData } = item;
+        return { id: contentId, data: { contentId, ...seoData } };
+      });
+      await ctx.storage.overrides.putMany(entries);
+      return { success: true, count: items.length };
     },
   },
 };

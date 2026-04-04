@@ -1,7 +1,7 @@
 import React from "react";
 import { render } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { pages, widgets } from "../../src/admin/index.js";
+import { pages, widgets, fields } from "../../src/admin/index.js";
 import { globalStyles } from "../../src/admin/styles.js";
 
 // Mock the page/widget components so we don't pull in their full trees
@@ -23,6 +23,11 @@ vi.mock("../../src/admin/widgets/seo-status.js", () => ({
 vi.mock("../../src/admin/widgets/seo-score.js", () => ({
   SeoScoreWidget: (_props: Record<string, unknown>) => (
     <div data-testid="seo-score">SeoScoreWidget</div>
+  ),
+}));
+vi.mock("../../src/admin/widgets/seo-fields.js", () => ({
+  SeoFieldsWidget: (_props: Record<string, unknown>) => (
+    <div data-testid="seo-fields">SeoFieldsWidget</div>
   ),
 }));
 
@@ -50,6 +55,13 @@ describe("admin entry point — widgets export", () => {
   it("contains 'seo-score' key", () => {
     expect(widgets).toHaveProperty("seo-score");
     expect(typeof widgets["seo-score"]).toBe("function");
+  });
+});
+
+describe("admin entry point — fields export", () => {
+  it("contains 'seo-fields' key", () => {
+    expect(fields).toHaveProperty("seo-fields");
+    expect(typeof fields["seo-fields"]).toBe("function");
   });
 });
 

@@ -1,6 +1,31 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+vi.mock("../../src/utils/license.js", async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    checkLicenseStatus: vi.fn(actual.checkLicenseStatus as any),
+    isFeatureAllowed: vi.fn(actual.isFeatureAllowed as any),
+  };
+});
+
 import { overrideRoutes } from "../../src/routes/overrides.js";
 import { createMockCtx } from "../mocks/ctx.js";
+import * as licenseModule from "../../src/utils/license.js";
+
+const { checkLicenseStatus } = licenseModule as { checkLicenseStatus: ReturnType<typeof vi.fn> };
+
+function mockFreeLicense() {
+  checkLicenseStatus.mockResolvedValue({
+    tier: "free", valid: false, expiresAt: null, siteLimit: 1,
+  });
+}
+
+function mockProLicense() {
+  checkLicenseStatus.mockResolvedValue({
+    tier: "pro", valid: true, expiresAt: "2027-01-01T00:00:00.000Z", siteLimit: 1,
+  });
+}
 
 describe("override routes", () => {
   let ctx: ReturnType<typeof createMockCtx> & { input: any };
@@ -106,6 +131,59 @@ describe("override routes", () => {
       const result = await overrideRoutes["overrides/delete"].handler(ctx);
       expect(result.success).toBe(true);
       expect(result.deleted).toBe(false);
+    });
+  });
+
+  describe("overrides/bulk-save", () => {
+    beforeEach(() => {
+      checkLicenseStatus.mockReset();
+    });
+
+    it("saves multiple items with pro license", async () => {
+      mockProLicense();
+      ctx.input = {
+        items: [
+          { contentId: "post-1", collection: "posts", title: "Title 1" },
+          { contentId: "post-2", collection: "posts", title: "Title 2" },
+          { contentId: "page-1", collection: "pages", description: "Page desc" },
+        ],
+      };
+      const result = await overrideRoutes["overrides/bulk-save"].handler(ctx);
+      expect(result.success).toBe(true);
+      expect(result.count).toBe(3);
+
+      // Verify data was actually stored
+      ctx.input = { contentId: "post-1" };
+      const get1 = await overrideRoutes["overrides/get"].handler(ctx);
+      expect(get1.overrides?.title).toBe("Title 1");
+
+      ctx.input = { contentId: "page-1" };
+      const get2 = await overrideRoutes["overrides/get"].handler(ctx);
+      expect(get2.overrides?.description).toBe("Page desc");
+    });
+
+    it("requires pro license", async () => {
+      mockFreeLicense();
+      ctx.input = {
+        items: [
+          { contentId: "post-1", collection: "posts", title: "Title 1" },
+        ],
+      };
+      const result = await overrideRoutes["overrides/bulk-save"].handler(ctx);
+      expect(result.error).toBe("pro_required");
+      expect(result.message).toBe("Bulk editing requires a Pro license");
+    });
+
+    it("returns count of saved items", async () => {
+      mockProLicense();
+      ctx.input = {
+        items: [
+          { contentId: "a", collection: "posts", title: "A" },
+          { contentId: "b", collection: "posts", title: "B" },
+        ],
+      };
+      const result = await overrideRoutes["overrides/bulk-save"].handler(ctx);
+      expect(result.count).toBe(2);
     });
   });
 });

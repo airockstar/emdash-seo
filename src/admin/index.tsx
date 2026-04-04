@@ -4,6 +4,7 @@ import { SeoOverridesPage } from "./pages/seo-overrides.js";
 import { ContentAnalysisPage } from "./pages/content-analysis.js";
 import { SeoStatusWidget } from "./widgets/seo-status.js";
 import { SeoScoreWidget } from "./widgets/seo-score.js";
+import { SeoFieldsWidget } from "./widgets/seo-fields.js";
 
 // Inject global styles once — never remove (persist for plugin lifetime)
 let styleRef: HTMLStyleElement | null = null;
@@ -33,4 +34,8 @@ export const pages = {
 export const widgets = {
   "seo-status": withStyles(SeoStatusWidget),
   "seo-score": withStyles(SeoScoreWidget),
+};
+
+export const fields = {
+  "seo-fields": withStyles(SeoFieldsWidget),
 };

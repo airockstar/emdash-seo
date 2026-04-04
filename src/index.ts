@@ -57,6 +57,13 @@ const definition: PluginDefinition = {
   admin: {
     entry: "./admin/index.tsx",
     settingsSchema: SETTINGS_SCHEMA,
+    fieldWidgets: [
+      {
+        name: "seo-fields",
+        label: "SEO",
+        fieldTypes: ["json", "string"],
+      },
+    ],
     pages: [
       { path: "seo-overrides", label: "SEO Overrides", icon: "search" },
       { path: "content-analysis", label: "Content Analysis", icon: "chart" },
