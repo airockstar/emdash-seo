@@ -22,15 +22,10 @@ function base64urlDecodeString(str: string): string {
   return atob(padded);
 }
 
-/**
- * RSA public key for license JWT verification.
- * IMPORTANT: Replace this placeholder with your actual RSA public key before production.
- * Generate a keypair: openssl genrsa -out private.pem 2048 && openssl rsa -in private.pem -pubout -out public.pem
- * Then convert to JWK format and paste the modulus (n) here.
- */
+/** RSA public key for license JWT verification. */
 const PUBLIC_KEY_JWK: JsonWebKey = {
   kty: "RSA",
-  n: "placeholder-replace-with-real-public-key-modulus",
+  n: "nsukrmIGf-a469JjrgU8aDc8vlVy1dbvSJpIqvQSMNFWmkNVPN_R2P64O5KNXFw6bnjoEWsqYVL_HjJOkQxnptuBuNt-qE8BYNQbmGB-cUdrk_5ZVfB2ZZm6zeAIjKXMUWV2P9b9Cel0biBhrAqf6ZBfJx9vBj28lda63385L6GQhg7XuGJ6mnej9WVDVQfByBLUzsE2WO2y9F0ZlcQhExHxB12tr3521_NW-04yqXlqsk4h9ecwWlN0oYFZeoYZyrb4hibTEkc6csL3hWCWe5HfrauVo9iJKd46zQBAKpHA0eMYuFuiyjP8OqJuvbmf5iLXrFbLhTcBrM4ngC1PyQ",
   e: "AQAB",
   alg: "RS256",
   use: "sig",
