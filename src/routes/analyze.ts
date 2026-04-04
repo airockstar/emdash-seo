@@ -14,6 +14,7 @@ import { checkDuplicateTitle, checkDuplicateDescription } from "../analysis/dupl
 import { calculateScore } from "../analysis/score.js";
 import { checkLicenseStatus, isFeatureAllowed } from "../utils/license.js";
 import { suggestInternalLinks } from "../analysis/link-suggestions.js";
+import { suggestAltText } from "../analysis/alt-suggestions.js";
 
 function runFreeChecks(
   title: string | undefined,
@@ -116,6 +117,8 @@ export const analyzeRoutes = {
       const blocks = content.body ?? [];
       const text = extractPlainText(blocks);
 
+      const images = extractImages(blocks as any);
+
       const freeChecks = runFreeChecks(title, description, keyword, blocks);
       const paidChecks = runPaidChecks(
         text, keyword, blocks,
@@ -128,6 +131,8 @@ export const analyzeRoutes = {
       const checks = [...freeChecks, ...paidChecks];
       const score = calculateScore(checks);
 
+      const altSuggestions = suggestAltText(images, title ?? "");
+
       await ctx.storage.scores.put(ctx.input.contentId, {
         contentId: ctx.input.contentId,
         collection: content.collection ?? "",
@@ -136,7 +141,7 @@ export const analyzeRoutes = {
         analyzedAt: new Date().toISOString(),
       });
 
-      return { score, checks };
+      return { score, checks, altSuggestions };
     },
   },
 
