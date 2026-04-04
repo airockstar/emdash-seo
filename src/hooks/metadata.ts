@@ -20,6 +20,9 @@ interface MetadataCtx {
       get(id: string): Promise<SeoOverrides | null>;
     };
   };
+  users?: {
+    get(id: string): Promise<{ name: string; email?: string; avatar?: string } | null>;
+  };
   site: { url: string };
 }
 
@@ -187,6 +190,17 @@ export async function metadataHandler(
   }
 
   if (page.kind === "content" && page.articleMeta) {
+    // Enrich author with user data if available
+    let author: string | { name: string; url?: string; image?: string } | undefined = page.articleMeta.author;
+    if (page.articleMeta.author && ctx.users) {
+      try {
+        const user = await ctx.users.get(page.articleMeta.author);
+        if (user) {
+          author = { name: user.name, image: user.avatar };
+        }
+      } catch { /* graceful fallback to string author */ }
+    }
+
     contributions.push({
       kind: "jsonld",
       graph: buildArticleSchema({
@@ -195,7 +209,7 @@ export async function metadataHandler(
         image: resolved.ogImage,
         datePublished: page.articleMeta.publishedTime,
         dateModified: page.articleMeta.modifiedTime,
-        author: page.articleMeta.author,
+        author,
         publisherName: defaults.orgName || defaults.siteName || undefined,
         publisherLogo: defaults.orgLogoUrl || undefined,
         url: page.url,

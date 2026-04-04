@@ -124,6 +124,12 @@ export function createMockCtx(options: MockCtxOptions = {}) {
         nextCursor: undefined,
       })),
     },
+    users: {
+      get: vi.fn(async (id: string) => {
+        if (id === "author-1") return { name: "Jane Doe", email: "jane@example.com", avatar: "https://example.com/jane.jpg" };
+        return null;
+      }),
+    },
     http: { fetch: vi.fn() },
     plugin: { id: "@emdash-seo/toolkit", version: "0.1.0" },
     cron: {

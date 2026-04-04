@@ -1,14 +1,31 @@
+export interface AuthorData {
+  name: string;
+  url?: string;
+  image?: string;
+}
+
 export function buildArticleSchema(data: {
   headline?: string;
   description?: string;
   image?: string;
   datePublished?: string;
   dateModified?: string;
-  author?: string;
+  author?: string | AuthorData;
   publisherName?: string;
   publisherLogo?: string;
   url?: string;
 }): Record<string, unknown> {
+  const authorSchema = data.author
+    ? typeof data.author === "string"
+      ? { "@type": "Person", name: data.author }
+      : clean({
+          "@type": "Person",
+          name: data.author.name,
+          url: data.author.url,
+          image: data.author.image,
+        })
+    : undefined;
+
   return clean({
     "@type": "Article",
     headline: data.headline,
@@ -17,9 +34,7 @@ export function buildArticleSchema(data: {
     url: data.url,
     datePublished: data.datePublished,
     dateModified: data.dateModified,
-    author: data.author
-      ? { "@type": "Person", name: data.author }
-      : undefined,
+    author: authorSchema,
     publisher: data.publisherName
       ? clean({
           "@type": "Organization",

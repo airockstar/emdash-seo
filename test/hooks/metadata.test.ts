@@ -189,6 +189,28 @@ describe("metadataHandler", () => {
     expect(article.graph.headline).toBe("My Blog Post");
   });
 
+  it("enriches author JSON-LD with user data when ctx.users available", async () => {
+    const ctx = createCtx();
+    const authorPage = { ...articlePage, articleMeta: { ...articlePage.articleMeta!, author: "author-1" } };
+    const result = await metadataHandler({ page: authorPage }, ctx);
+    const article = findJsonld(result, "Article");
+
+    expect(article.graph.author).toEqual({
+      "@type": "Person",
+      name: "Jane Doe",
+      image: "https://example.com/jane.jpg",
+    });
+  });
+
+  it("falls back to string author when user not found", async () => {
+    const ctx = createCtx();
+    const authorPage = { ...articlePage, articleMeta: { ...articlePage.articleMeta!, author: "unknown-author" } };
+    const result = await metadataHandler({ page: authorPage }, ctx);
+    const article = findJsonld(result, "Article");
+
+    expect(article.graph.author).toEqual({ "@type": "Person", name: "unknown-author" });
+  });
+
   it("produces WebPage JSON-LD for generic pages", async () => {
     const ctx = createCtx();
     const result = await metadataHandler({ page: genericPage }, ctx);

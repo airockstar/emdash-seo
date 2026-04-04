@@ -31,6 +31,29 @@ describe("buildArticleSchema", () => {
     });
   });
 
+  it("accepts structured author with url and image", () => {
+    const result = buildArticleSchema({
+      headline: "Post",
+      author: { name: "Jane Doe", url: "https://example.com/jane", image: "https://example.com/jane.jpg" },
+    });
+
+    expect(result.author).toEqual({
+      "@type": "Person",
+      name: "Jane Doe",
+      url: "https://example.com/jane",
+      image: "https://example.com/jane.jpg",
+    });
+  });
+
+  it("handles structured author with only name", () => {
+    const result = buildArticleSchema({
+      headline: "Post",
+      author: { name: "John" },
+    });
+
+    expect(result.author).toEqual({ "@type": "Person", name: "John" });
+  });
+
   it("omits undefined fields", () => {
     const result = buildArticleSchema({ headline: "Title" });
 
