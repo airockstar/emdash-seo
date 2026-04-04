@@ -6,7 +6,7 @@ import { checkTitleLength, checkTitleKeyword } from "../analysis/title.js";
 import { checkDescriptionLength, checkDescriptionKeyword } from "../analysis/description.js";
 import { checkSingleH1, checkHeadingHierarchy } from "../analysis/headings.js";
 import { checkImageAltText } from "../analysis/images.js";
-import { checkReadability } from "../analysis/readability.js";
+import { checkReadability, checkPassiveVoice, checkSentenceLength, checkTransitionWords, checkParagraphLength } from "../analysis/readability.js";
 import { checkKeywordDensity, checkKeywordInFirstParagraph } from "../analysis/keywords.js";
 import { checkOgImage } from "../analysis/og-image.js";
 import { checkInternalLinks } from "../analysis/links.js";
@@ -50,6 +50,10 @@ function runPaidChecks(
 
   return [
     checkReadability(text),
+    checkPassiveVoice(text),
+    checkSentenceLength(text),
+    checkTransitionWords(text),
+    checkParagraphLength(text),
     checkKeywordDensity(text, keyword),
     checkKeywordInFirstParagraph(text, keyword),
     checkInternalLinks(links),
