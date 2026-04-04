@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { postToTwitter } from "../utils/social/twitter.js";
 import { postToBluesky } from "../utils/social/bluesky.js";
+import { checkLicenseStatus, isFeatureAllowed } from "../utils/license.js";
 
 const PostInput = z.object({
   contentId: z.string(),
@@ -17,6 +18,11 @@ export const socialRoutes = {
   "social/post": {
     input: PostInput,
     handler: async (ctx: any) => {
+      const license = await checkLicenseStatus(ctx);
+      if (!isFeatureAllowed("social-auto-post", license.tier)) {
+        return { error: "pro_required", message: "Social posting requires a Pro license" };
+      }
+
       const { contentId, platforms } = ctx.input;
       const content = await ctx.content.get(contentId);
       if (!content) {

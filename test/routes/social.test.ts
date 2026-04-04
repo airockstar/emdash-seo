@@ -1,6 +1,37 @@
 import { describe, it, expect, vi } from "vitest";
-import { socialRoutes } from "../../src/routes/social.js";
 import { createMockCtx } from "../mocks/ctx.js";
+
+import * as licenseModule from "../../src/utils/license.js";
+
+vi.mock("../../src/utils/license.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof licenseModule>();
+  return {
+    ...actual,
+    checkLicenseStatus: vi.fn(actual.checkLicenseStatus),
+  };
+});
+
+// Import socialRoutes AFTER the mock is set up
+const { socialRoutes } = await import("../../src/routes/social.js");
+const { checkLicenseStatus } = licenseModule as { checkLicenseStatus: ReturnType<typeof vi.fn> };
+
+function mockProLicense() {
+  checkLicenseStatus.mockResolvedValue({
+    tier: "pro" as const,
+    valid: true,
+    expiresAt: null,
+    siteLimit: 1,
+  });
+}
+
+function mockFreeLicense() {
+  checkLicenseStatus.mockResolvedValue({
+    tier: "free" as const,
+    valid: false,
+    expiresAt: null,
+    siteLimit: 1,
+  });
+}
 
 function createSocialCtx(settings: Record<string, unknown> = {}) {
   const ctx = createMockCtx({
@@ -37,7 +68,45 @@ function createSocialCtx(settings: Record<string, unknown> = {}) {
 describe("social/post route", () => {
   const handler = socialRoutes["social/post"].handler;
 
+  it("returns pro_required when no license key is set", async () => {
+    mockFreeLicense();
+    const ctx = createMockCtx({
+      contentItems: [
+        { id: "p1", collection: "posts", slug: "test-post", title: "Test Post", description: "Desc" },
+      ],
+    });
+    const result = await handler({
+      ...ctx,
+      input: { contentId: "p1", platforms: ["twitter"] },
+    } as any);
+
+    expect(result.error).toBe("pro_required");
+    expect(result.message).toBe("Social posting requires a Pro license");
+  });
+
+  it("returns pro_required for free-tier users", async () => {
+    mockFreeLicense();
+    const ctx = createMockCtx({
+      settings: {
+        licenseKey: "not-a-valid-jwt",
+        twitterApiKey: "tw-key",
+        twitterApiSecret: "tw-secret",
+      },
+      contentItems: [
+        { id: "p1", collection: "posts", slug: "test-post", title: "Test Post", description: "Desc" },
+      ],
+    });
+    const result = await handler({
+      ...ctx,
+      input: { contentId: "p1", platforms: ["twitter"] },
+    } as any);
+
+    expect(result.error).toBe("pro_required");
+    expect(result.message).toBe("Social posting requires a Pro license");
+  });
+
   it("posts to twitter successfully", async () => {
+    mockProLicense();
     const ctx = createSocialCtx();
     const result = await handler({
       ...ctx,
@@ -50,6 +119,7 @@ describe("social/post route", () => {
   });
 
   it("posts to bluesky successfully", async () => {
+    mockProLicense();
     const ctx = createSocialCtx();
     const result = await handler({
       ...ctx,
@@ -62,6 +132,7 @@ describe("social/post route", () => {
   });
 
   it("skips already-posted content (dedup)", async () => {
+    mockProLicense();
     const ctx = createSocialCtx();
     // First post
     await handler({ ...ctx, input: { contentId: "p1", platforms: ["twitter"] } } as any);
@@ -72,6 +143,7 @@ describe("social/post route", () => {
   });
 
   it("returns error for missing content", async () => {
+    mockProLicense();
     const ctx = createSocialCtx();
     const result = await handler({
       ...ctx,
@@ -82,6 +154,7 @@ describe("social/post route", () => {
   });
 
   it("skips unconfigured platforms", async () => {
+    mockProLicense();
     const ctx = createSocialCtx({ twitterApiKey: "", twitterApiSecret: "" });
     const result = await handler({
       ...ctx,

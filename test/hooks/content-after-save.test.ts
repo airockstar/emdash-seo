@@ -1,5 +1,35 @@
 import { describe, it, expect, vi } from "vitest";
-import { contentAfterSaveHook } from "../../src/hooks/content-after-save.js";
+
+import * as licenseModule from "../../src/utils/license.js";
+
+vi.mock("../../src/utils/license.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof licenseModule>();
+  return {
+    ...actual,
+    checkLicenseStatus: vi.fn(actual.checkLicenseStatus),
+  };
+});
+
+const { contentAfterSaveHook } = await import("../../src/hooks/content-after-save.js");
+const { checkLicenseStatus } = licenseModule as { checkLicenseStatus: ReturnType<typeof vi.fn> };
+
+function mockProLicense() {
+  checkLicenseStatus.mockResolvedValue({
+    tier: "pro" as const,
+    valid: true,
+    expiresAt: null,
+    siteLimit: 1,
+  });
+}
+
+function mockFreeLicense() {
+  checkLicenseStatus.mockResolvedValue({
+    tier: "free" as const,
+    valid: false,
+    expiresAt: null,
+    siteLimit: 1,
+  });
+}
 
 function createCtx(opts: {
   overrides?: Record<string, any>;
@@ -73,6 +103,7 @@ describe("contentAfterSaveHook", () => {
   });
 
   it("auto-posts to social when isNew + published + enableAutoPost", async () => {
+    mockProLicense();
     const ctx = createCtx({
       kvSettings: {
         "settings:enableAutoPost": true,
@@ -108,6 +139,25 @@ describe("contentAfterSaveHook", () => {
     );
   });
 
+  it("skips auto-post when license is free tier", async () => {
+    mockFreeLicense();
+    const ctx = createCtx({
+      kvSettings: {
+        "settings:enableAutoPost": true,
+        "settings:twitterApiKey": "key",
+        "settings:twitterApiSecret": "secret",
+      },
+    });
+
+    await contentAfterSaveHook(
+      { content: baseContent, collection: "posts", isNew: true },
+      ctx,
+    );
+
+    expect(ctx.http.fetch).not.toHaveBeenCalled();
+    expect(ctx.storage.socialPosts.put).not.toHaveBeenCalled();
+  });
+
   it("skips social posting when not new", async () => {
     const ctx = createCtx({
       kvSettings: { "settings:enableAutoPost": true },
@@ -135,6 +185,7 @@ describe("contentAfterSaveHook", () => {
   });
 
   it("dedup: skips if already posted", async () => {
+    mockProLicense();
     const ctx = createCtx({
       kvSettings: {
         "settings:enableAutoPost": true,
@@ -160,6 +211,7 @@ describe("contentAfterSaveHook", () => {
   });
 
   it("logs warning on post failure", async () => {
+    mockProLicense();
     const ctx = createCtx({
       kvSettings: {
         "settings:enableAutoPost": true,

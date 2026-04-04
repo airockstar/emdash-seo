@@ -6,6 +6,7 @@ import { checkImageAltText } from "../analysis/images.js";
 import { calculateScore } from "../analysis/score.js";
 import { postToTwitter } from "../utils/social/twitter.js";
 import { postToBluesky } from "../utils/social/bluesky.js";
+import { checkLicenseStatus, isFeatureAllowed } from "../utils/license.js";
 
 export const contentAfterSaveHook = async (event: any, ctx: any) => {
   const { content, collection, isNew } = event;
@@ -45,6 +46,9 @@ export const contentAfterSaveHook = async (event: any, ctx: any) => {
 
   const autoPost = await ctx.kv.get("settings:enableAutoPost");
   if (!autoPost) return;
+
+  const license = await checkLicenseStatus(ctx);
+  if (!isFeatureAllowed("social-auto-post", license.tier)) return;
 
   const [template, twitterKey, twitterSecret, bskyHandle, bskyPassword] =
     await Promise.all([
