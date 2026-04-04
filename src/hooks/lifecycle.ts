@@ -38,8 +38,12 @@ export const lifecycleHooks = {
     ctx.log.info("SEO Toolkit deactivated");
   },
 
-  "plugin:uninstall": async (_event: unknown, ctx: LifecycleCtx) => {
+  "plugin:uninstall": async (event: { deleteData: boolean }, ctx: LifecycleCtx) => {
     await ctx.cron.cancel("recalculate-scores");
-    ctx.log.info("SEO Toolkit uninstalled");
+    if (event.deleteData) {
+      ctx.log.info("SEO Toolkit uninstalled — data cleanup requested");
+    } else {
+      ctx.log.info("SEO Toolkit uninstalled — data preserved");
+    }
   },
 };

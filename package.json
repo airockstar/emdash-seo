@@ -18,7 +18,8 @@
     "lint": "npx oxlint src/ test/"
   },
   "peerDependencies": {
-    "emdash": "^0.1.0"
+    "emdash": "^0.1.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",

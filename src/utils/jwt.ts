@@ -22,8 +22,12 @@ function base64urlDecodeString(str: string): string {
   return atob(padded);
 }
 
-// Embedded public key for license verification (JWK format)
-// In production, generate your own RSA keypair and embed the public key here
+/**
+ * RSA public key for license JWT verification.
+ * IMPORTANT: Replace this placeholder with your actual RSA public key before production.
+ * Generate a keypair: openssl genrsa -out private.pem 2048 && openssl rsa -in private.pem -pubout -out public.pem
+ * Then convert to JWK format and paste the modulus (n) here.
+ */
 const PUBLIC_KEY_JWK: JsonWebKey = {
   kty: "RSA",
   n: "placeholder-replace-with-real-public-key-modulus",
