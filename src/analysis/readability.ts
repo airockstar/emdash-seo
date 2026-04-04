@@ -30,7 +30,8 @@ export function checkReadability(text: string): SeoCheck {
   return { id: "readability", label: "Readability", status: "fail", message: `Readability score: ${rounded} (very difficult)`, weight: 5 };
 }
 
-const PASSIVE_PATTERN = /\b(?:was|were|is|are|been|being)\s+\w+ed\b/gi;
+// No /g flag — .test() with /g is stateful and produces wrong results
+const PASSIVE_PATTERN = /\b(?:was|were|is|are|been|being)\s+\w+ed\b/i;
 
 const TRANSITION_WORDS = [
   "however", "therefore", "moreover", "furthermore", "additionally",

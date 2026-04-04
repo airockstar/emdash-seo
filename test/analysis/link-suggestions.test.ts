@@ -75,9 +75,10 @@ describe("suggestInternalLinks", () => {
     expect(ids).not.toContain("post-5");
   });
 
-  it("filters out short words (<=2 chars)", () => {
-    // post-4 has title "A B" - both words are <=2 chars, should be skipped
-    const text = "A B something else entirely";
+  it("filters out items with only short/stop words in title", () => {
+    // post-4 has title "A B" — too short for word matching, and "A B" as a phrase
+    // won't match meaningful text that doesn't contain exactly "a b"
+    const text = "This text discusses completely unrelated topics without mentioning any short titles.";
     const result = suggestInternalLinks(text, "current-id", allContent, siteUrl);
 
     const ids = result.map((s) => s.targetId);

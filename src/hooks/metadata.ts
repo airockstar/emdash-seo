@@ -287,7 +287,7 @@ export async function metadataHandler(
             contributions.push({
               kind: "link",
               rel: "alternate",
-              href: mapping.urlPrefix + page.path,
+              href: mapping.urlPrefix.replace(/\/+$/, "") + page.path,
               hreflang: mapping.lang,
             });
           }

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { extractPlainText } from "emdash";
 import type { SeoCheck, SeoOverrides } from "../types.js";
 import { extractHeadings, extractImages, extractLinks } from "../utils/portable-text.js";
+import { fetchAllContent } from "../utils/content.js";
 import { checkTitleLength, checkTitleKeyword } from "../analysis/title.js";
 import { checkDescriptionLength, checkDescriptionKeyword } from "../analysis/description.js";
 import { checkSingleH1, checkHeadingHierarchy } from "../analysis/headings.js";
@@ -123,7 +124,10 @@ export const analyzeRoutes = {
 
       const images = extractImages(blocks as any);
 
+      const ogImage = overrides?.ogImage ?? content.image;
       const freeChecks = runFreeChecks(title, description, keyword, blocks);
+      const ogCheck = await checkOgImage(ogImage, ctx.media);
+      freeChecks.push(ogCheck);
       const paidChecks = runPaidChecks(
         text, keyword, blocks,
         title, description,
@@ -165,11 +169,11 @@ export const analyzeRoutes = {
       const blocks = content.body ?? [];
       const text = extractPlainText(blocks);
 
-      const allContentResult = await ctx.content.list();
+      const allItems = await fetchAllContent(ctx);
       const suggestions = suggestInternalLinks(
         text,
         ctx.input.contentId,
-        allContentResult.items,
+        allItems,
         ctx.site.url,
       );
 

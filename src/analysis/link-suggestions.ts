@@ -6,10 +6,18 @@ export interface LinkSuggestion {
   relevanceScore: number;
 }
 
-/**
- * Suggest internal links by checking if other content titles (or title words)
- * appear in the given text. Scored by word overlap.
- */
+const STOP_WORDS = new Set([
+  "the", "and", "for", "are", "but", "not", "you", "all", "can", "had",
+  "her", "was", "one", "our", "out", "has", "his", "how", "its", "may",
+  "new", "now", "old", "see", "way", "who", "did", "get", "let", "say",
+  "she", "too", "use", "top", "best", "most", "also", "been", "from",
+  "have", "here", "just", "like", "make", "many", "more", "much", "must",
+  "over", "some", "such", "than", "that", "them", "then", "they", "this",
+  "very", "what", "when", "will", "with", "your", "about", "after", "being",
+  "could", "every", "first", "into", "other", "should", "their", "there",
+  "these", "those", "under", "which", "while", "would",
+]);
+
 export function suggestInternalLinks(
   text: string,
   currentId: string,
@@ -27,26 +35,39 @@ export function suggestInternalLinks(
     const title = item.data.title;
     if (!title) continue;
 
-    const titleWords = title
-      .toLowerCase()
+    // Check if full title appears in text (highest relevance)
+    const lowerTitle = title.toLowerCase();
+    if (lowerText.includes(lowerTitle)) {
+      const collection = item.data.collection ?? "";
+      const slug = item.data.slug ?? item.id;
+      suggestions.push({
+        targetId: item.id,
+        targetTitle: title,
+        targetUrl: `${siteUrl}/${collection}${collection ? "/" : ""}${slug}`,
+        matchedPhrase: title,
+        relevanceScore: 1.0,
+      });
+      continue;
+    }
+
+    // Fall back to significant word overlap (min 4 chars, no stop words)
+    const titleWords = lowerTitle
       .split(/\s+/)
-      .filter((w) => w.length > 2);
+      .filter((w) => w.length >= 4 && !STOP_WORDS.has(w));
 
     if (titleWords.length === 0) continue;
 
     const matchedWords = titleWords.filter((w) => lowerText.includes(w));
-    if (matchedWords.length === 0) continue;
+    if (matchedWords.length < 2) continue; // require at least 2 significant word matches
 
     const relevanceScore = Math.round((matchedWords.length / titleWords.length) * 100) / 100;
-
     const collection = item.data.collection ?? "";
     const slug = item.data.slug ?? item.id;
-    const targetUrl = `${siteUrl}/${collection}${collection ? "/" : ""}${slug}`;
 
     suggestions.push({
       targetId: item.id,
       targetTitle: title,
-      targetUrl,
+      targetUrl: `${siteUrl}/${collection}${collection ? "/" : ""}${slug}`,
       matchedPhrase: matchedWords.join(" "),
       relevanceScore,
     });
