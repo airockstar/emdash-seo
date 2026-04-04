@@ -11,8 +11,8 @@ function makeChecks(): Array<{ id: string; label: string; status: "pass" | "warn
   ];
 }
 
-function mockSuccess(score = 75, checks = makeChecks()) {
-  return vi.fn().mockResolvedValue({ score, checks });
+function mockSuccess(score = 75, checks = makeChecks(), extra: Record<string, unknown> = {}) {
+  return vi.fn().mockResolvedValue({ score, checks, ...extra });
 }
 
 function mockErrorResponse(message: string) {
@@ -307,6 +307,77 @@ describe("ContentAnalysisPage", () => {
       expect(screen.getByText("Title is between 30-60 characters")).toBeDefined();
       expect(screen.getByText("Description is a bit short")).toBeDefined();
       expect(screen.getByText("No H1 tag found on the page")).toBeDefined();
+    });
+  });
+
+  // Link Suggestions section appears after analysis
+  it("shows Link Suggestions section after analysis", async () => {
+    const callRoute = mockSuccess();
+    render(<ContentAnalysisPage callRoute={callRoute} />);
+
+    fireEvent.change(screen.getByLabelText("Content ID"), { target: { value: "post-1" } });
+    fireEvent.click(screen.getByText("Analyze"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Internal Link Suggestions")).toBeDefined();
+    });
+  });
+
+  // Empty link suggestions shows message
+  it("shows empty message when no link suggestions available", async () => {
+    const callRoute = mockSuccess();
+    render(<ContentAnalysisPage callRoute={callRoute} />);
+
+    fireEvent.change(screen.getByLabelText("Content ID"), { target: { value: "post-1" } });
+    fireEvent.click(screen.getByText("Analyze"));
+
+    await waitFor(() => {
+      expect(screen.getByText("No link suggestions available. Run Advanced analysis for suggestions.")).toBeDefined();
+    });
+  });
+
+  // Link suggestion items show title and URL
+  it("shows link suggestion items with title and URL", async () => {
+    const suggestions = [
+      { targetTitle: "Related Post", targetUrl: "/blog/related", relevanceScore: 0.85 },
+      { targetTitle: "Another Post", targetUrl: "/blog/another", relevanceScore: 0.72 },
+    ];
+    const callRoute = vi.fn().mockImplementation((route: string) => {
+      if (route === "analyze") return Promise.resolve({ score: 75, checks: makeChecks() });
+      if (route === "analyze/link-suggestions") return Promise.resolve({ suggestions });
+      return Promise.resolve({});
+    });
+    render(<ContentAnalysisPage callRoute={callRoute} />);
+
+    fireEvent.change(screen.getByLabelText("Content ID"), { target: { value: "post-1" } });
+    fireEvent.click(screen.getByText("Analyze"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Related Post")).toBeDefined();
+      expect(screen.getByText("/blog/related")).toBeDefined();
+      expect(screen.getByText("85%")).toBeDefined();
+      expect(screen.getByText("Another Post")).toBeDefined();
+      expect(screen.getByText("/blog/another")).toBeDefined();
+      expect(screen.getByText("72%")).toBeDefined();
+    });
+  });
+
+  // Alt Suggestions section appears when present in results
+  it("shows Alt Suggestions section when present in results", async () => {
+    const altSuggestions = [
+      { src: "hero.jpg", imageIndex: 0, suggestedAlt: "A hero banner image" },
+      { imageIndex: 1, suggestedAlt: "Product screenshot" },
+    ];
+    const callRoute = mockSuccess(75, makeChecks(), { altSuggestions });
+    render(<ContentAnalysisPage callRoute={callRoute} />);
+
+    fireEvent.change(screen.getByLabelText("Content ID"), { target: { value: "post-1" } });
+    fireEvent.click(screen.getByText("Analyze"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Alt Text Suggestions")).toBeDefined();
+      expect(screen.getByText("hero.jpg")).toBeDefined();
+      expect(screen.getByText("Image 2")).toBeDefined();
     });
   });
 });

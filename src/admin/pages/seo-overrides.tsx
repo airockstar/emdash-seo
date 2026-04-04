@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { SerpPreview } from "../components/serp-preview.js";
+import { SocialPreview } from "../components/social-preview.js";
 import { CharacterCounter } from "../components/character-counter.js";
 import { EmptyState } from "../components/shared.js";
 import { colors } from "../tokens.js";
@@ -15,6 +16,7 @@ interface Override {
     robots?: string;
     canonical?: string;
     focusKeyword?: string;
+    schemaType?: string;
   };
 }
 
@@ -26,7 +28,7 @@ export interface SeoOverridesPageProps {
 export function SeoOverridesPage({ callRoute, siteUrl }: SeoOverridesPageProps) {
   const [overrides, setOverrides] = useState<Override[]>([]);
   const [editing, setEditing] = useState<string | null>(null);
-  const [form, setForm] = useState({ title: "", description: "", focusKeyword: "", robots: "", canonical: "" });
+  const [form, setForm] = useState({ title: "", description: "", focusKeyword: "", robots: "", canonical: "", ogImage: "", schemaType: "" });
   const [filter, setFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const lastFilterRef = useRef("");
@@ -46,7 +48,8 @@ export function SeoOverridesPage({ callRoute, siteUrl }: SeoOverridesPageProps) 
 
   async function save(contentId: string) {
     const override = overrides.find((o) => o.id === contentId);
-    await callRoute("overrides/save", { contentId, collection: override?.data.collection ?? "", ...form });
+    const { schemaType, ...rest } = form;
+    await callRoute("overrides/save", { contentId, collection: override?.data.collection ?? "", ...rest, schemaType: schemaType || undefined });
     setEditing(null);
     loadOverrides();
   }
@@ -65,6 +68,8 @@ export function SeoOverridesPage({ callRoute, siteUrl }: SeoOverridesPageProps) 
       focusKeyword: override.data.focusKeyword ?? "",
       robots: override.data.robots ?? "",
       canonical: override.data.canonical ?? "",
+      ogImage: override.data.ogImage ?? "",
+      schemaType: override.data.schemaType ?? "",
     });
     setTimeout(() => editRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 100);
   }
@@ -161,6 +166,11 @@ export function SeoOverridesPage({ callRoute, siteUrl }: SeoOverridesPageProps) 
                 <textarea id="seo-desc" className="seo-input seo-textarea" value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Meta description for search results" />
               </div>
+              <div>
+                <label htmlFor="seo-ogimage" className="seo-label">OG Image URL</label>
+                <input id="seo-ogimage" className="seo-input" type="text" value={form.ogImage}
+                  onChange={(e) => setForm({ ...form, ogImage: e.target.value })} placeholder="https://..." />
+              </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 <div>
                   <label htmlFor="seo-keyword" className="seo-label">Focus Keyword</label>
@@ -178,6 +188,20 @@ export function SeoOverridesPage({ callRoute, siteUrl }: SeoOverridesPageProps) 
                 <input id="seo-canonical" className="seo-input" type="text" value={form.canonical}
                   onChange={(e) => setForm({ ...form, canonical: e.target.value })} placeholder="https://..." />
               </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div>
+                  <label htmlFor="seo-schema-type" className="seo-label">Schema Type</label>
+                  <select id="seo-schema-type" className="seo-input" value={form.schemaType}
+                    onChange={(e) => setForm({ ...form, schemaType: e.target.value })}>
+                    <option value="">None (auto-detect)</option>
+                    <option value="faq">FAQ</option>
+                    <option value="howto">How-To</option>
+                    <option value="product">Product</option>
+                    <option value="localBusiness">Local Business</option>
+                    <option value="event">Event</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
             <div style={{ marginTop: 24 }}>
@@ -185,6 +209,13 @@ export function SeoOverridesPage({ callRoute, siteUrl }: SeoOverridesPageProps) 
                 Search Preview
               </h4>
               <SerpPreview title={form.title} url={form.canonical || siteUrl} description={form.description} />
+            </div>
+
+            <div style={{ marginTop: 16 }}>
+              <h4 style={{ fontSize: "0.8125rem", fontWeight: 600, color: colors.textSecondary, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 12 }}>
+                Social Preview
+              </h4>
+              <SocialPreview title={form.title} description={form.description} image={form.ogImage} url={form.canonical || siteUrl} platform="facebook" />
             </div>
 
             <div style={{ marginTop: 20, display: "flex", gap: 8, justifyContent: "flex-end" }}>

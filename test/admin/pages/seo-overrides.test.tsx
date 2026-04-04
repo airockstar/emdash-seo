@@ -190,6 +190,8 @@ describe("SeoOverridesPage", () => {
         focusKeyword: "first post",
         robots: "index, follow",
         canonical: "https://example.com/blog/post-1",
+        ogImage: "",
+        schemaType: undefined,
       });
     });
   });
@@ -363,5 +365,86 @@ describe("SeoOverridesPage", () => {
     const pendingCallRoute = vi.fn().mockReturnValue(new Promise(() => {}));
     render(<SeoOverridesPage callRoute={pendingCallRoute} siteUrl="https://example.com" />);
     expect(screen.getByLabelText("Filter overrides by collection")).toBeDefined();
+  });
+
+  // OG Image field
+  it("edit panel has OG Image field with label and input", async () => {
+    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    await waitFor(() => {
+      expect(screen.getByText("post-1")).toBeDefined();
+    });
+    fireEvent.click(screen.getByLabelText("Edit post-1"));
+    expect(screen.getByLabelText("OG Image URL")).toBeDefined();
+    const input = document.getElementById("seo-ogimage") as HTMLInputElement;
+    expect(input).not.toBeNull();
+    expect(input.type).toBe("text");
+  });
+
+  // Schema Type select
+  it("edit panel has Schema Type select with all options", async () => {
+    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    await waitFor(() => {
+      expect(screen.getByText("post-1")).toBeDefined();
+    });
+    fireEvent.click(screen.getByLabelText("Edit post-1"));
+    expect(screen.getByLabelText("Schema Type")).toBeDefined();
+    const select = document.getElementById("seo-schema-type") as HTMLSelectElement;
+    expect(select).not.toBeNull();
+    const options = Array.from(select.options).map((o) => o.value);
+    expect(options).toContain("");
+    expect(options).toContain("faq");
+    expect(options).toContain("howto");
+    expect(options).toContain("product");
+    expect(options).toContain("localBusiness");
+    expect(options).toContain("event");
+  });
+
+  // Social Preview renders
+  it("edit panel shows Social Preview", async () => {
+    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    await waitFor(() => {
+      expect(screen.getByText("post-1")).toBeDefined();
+    });
+    fireEvent.click(screen.getByLabelText("Edit post-1"));
+    expect(screen.getByText("Social Preview")).toBeDefined();
+    expect(screen.getByRole("img", { name: "facebook card preview" })).toBeDefined();
+  });
+
+  // OG Image included in save payload
+  it("OG Image is included in save payload", async () => {
+    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    await waitFor(() => {
+      expect(screen.getByText("post-1")).toBeDefined();
+    });
+    fireEvent.click(screen.getByLabelText("Edit post-1"));
+
+    const ogInput = screen.getByLabelText("OG Image URL");
+    fireEvent.change(ogInput, { target: { value: "https://example.com/image.png" } });
+    fireEvent.click(screen.getByText("Save Changes"));
+
+    await waitFor(() => {
+      expect(callRoute).toHaveBeenCalledWith("overrides/save", expect.objectContaining({
+        ogImage: "https://example.com/image.png",
+      }));
+    });
+  });
+
+  // Schema Type included in save payload
+  it("Schema Type is included in save payload", async () => {
+    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    await waitFor(() => {
+      expect(screen.getByText("post-1")).toBeDefined();
+    });
+    fireEvent.click(screen.getByLabelText("Edit post-1"));
+
+    const select = document.getElementById("seo-schema-type") as HTMLSelectElement;
+    fireEvent.change(select, { target: { value: "faq" } });
+    fireEvent.click(screen.getByText("Save Changes"));
+
+    await waitFor(() => {
+      expect(callRoute).toHaveBeenCalledWith("overrides/save", expect.objectContaining({
+        schemaType: "faq",
+      }));
+    });
   });
 });

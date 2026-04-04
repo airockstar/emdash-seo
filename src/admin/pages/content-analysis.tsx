@@ -12,9 +12,10 @@ const STATUS_ICON: Record<string, string> = { pass: "\u2713", warn: "\u26A0", fa
 
 export function ContentAnalysisPage({ callRoute }: ContentAnalysisPageProps) {
   const [contentId, setContentId] = useState("");
-  const [result, setResult] = useState<{ score: number; checks: SeoCheck[] } | null>(null);
+  const [result, setResult] = useState<{ score: number; checks: SeoCheck[]; altSuggestions?: Array<{ src?: string; imageIndex: number; suggestedAlt: string }> } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [linkSuggestions, setLinkSuggestions] = useState<any[]>([]);
 
   async function analyze(advanced = false) {
     if (!contentId.trim()) return;
@@ -28,6 +29,9 @@ export function ContentAnalysisPage({ callRoute }: ContentAnalysisPageProps) {
         setResult(null);
       } else {
         setResult(data);
+        callRoute("analyze/link-suggestions", { contentId: contentId.trim() })
+          .then((d: any) => setLinkSuggestions(d.suggestions ?? []))
+          .catch(() => setLinkSuggestions([]));
       }
     } catch (e: any) {
       setError(e.message ?? "Analysis failed");
@@ -90,6 +94,45 @@ export function ContentAnalysisPage({ callRoute }: ContentAnalysisPageProps) {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {result && (
+        <div className="seo-card seo-fade-in" style={{ marginTop: 16 }}>
+          <div style={{ padding: "12px 16px", borderBottom: `1px solid ${colors.borderSubtle}` }}>
+            <h4 style={{ margin: 0, fontSize: "0.875rem", fontWeight: 600 }}>Internal Link Suggestions</h4>
+          </div>
+          <div className="seo-card-body">
+            {linkSuggestions.length === 0 ? (
+              <div style={{ color: colors.textTertiary, fontSize: "0.8125rem" }}>No link suggestions available. Run Advanced analysis for suggestions.</div>
+            ) : (
+              linkSuggestions.map((s, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${colors.borderSubtle}` }}>
+                  <div>
+                    <div style={{ fontWeight: 500, fontSize: "0.8125rem" }}>{s.targetTitle}</div>
+                    <div style={{ fontSize: "0.75rem", color: colors.textTertiary }}>{s.targetUrl}</div>
+                  </div>
+                  <span className="seo-badge seo-badge-success">{Math.round(s.relevanceScore * 100)}%</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {result?.altSuggestions && result.altSuggestions.length > 0 && (
+        <div className="seo-card seo-fade-in" style={{ marginTop: 16 }}>
+          <div style={{ padding: "12px 16px", borderBottom: `1px solid ${colors.borderSubtle}` }}>
+            <h4 style={{ margin: 0, fontSize: "0.875rem", fontWeight: 600 }}>Alt Text Suggestions</h4>
+          </div>
+          <div className="seo-card-body">
+            {result.altSuggestions.map((s, i) => (
+              <div key={i} style={{ padding: "8px 0", borderBottom: `1px solid ${colors.borderSubtle}` }}>
+                <div style={{ fontSize: "0.8125rem", fontWeight: 500 }}>{s.src || `Image ${s.imageIndex + 1}`}</div>
+                <div style={{ fontSize: "0.75rem", color: colors.textSecondary }}>Suggested: &quot;{s.suggestedAlt}&quot;</div>
+              </div>
+            ))}
           </div>
         </div>
       )}
