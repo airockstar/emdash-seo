@@ -1,5 +1,5 @@
 {
-  "name": "@emdash-seo/toolkit",
+  "name": "@airockstar/emdash-seo",
   "version": "0.1.0",
   "description": "SEO toolkit for Emdash CMS — meta tags, OpenGraph, JSON-LD, sitemaps, and content analysis",
   "type": "module",
