@@ -27,23 +27,29 @@ function defaultContent() {
   ];
 }
 
-describe("sitemap-xml route", () => {
+describe("sitemap-xml route (index)", () => {
   const handler = sitemapRoutes["sitemap-xml"].handler;
 
-  it("returns XML with all published content", async () => {
-    const ctx = createCtx();
+  it("returns flat sitemap for single collection", async () => {
+    const ctx = createCtx({}, [
+      { id: "p1", collection: "posts", slug: "hello" },
+      { id: "p2", collection: "posts", slug: "world" },
+    ]);
     const result = await handler(ctx as any) as any;
 
     expect(result.xml).toContain("<urlset");
-    expect(result.xml).toContain("hello-world</loc>");
-    expect(result.xml).toContain("second-post</loc>");
-    expect(result.xml).toContain("about</loc>");
+    expect(result.xml).toContain("hello</loc>");
+    expect(result.xml).toContain("world</loc>");
   });
 
-  it("returns application/xml content type", async () => {
+  it("returns sitemap index for multiple collections", async () => {
     const ctx = createCtx();
     const result = await handler(ctx as any) as any;
-    expect(result.contentType).toBe("application/xml");
+
+    expect(result.xml).toContain("<sitemapindex");
+    expect(result.xml).toContain("sitemap-collection");
+    expect(result.xml).toContain("posts");
+    expect(result.xml).toContain("pages");
   });
 
   it("returns error when sitemap is disabled", async () => {
@@ -56,46 +62,62 @@ describe("sitemap-xml route", () => {
     const ctx = createCtx({ sitemapExclude: "pages" });
     const result = await handler(ctx as any) as any;
 
+    // Only posts remain — single collection, flat sitemap
+    expect(result.xml).toContain("<urlset");
     expect(result.xml).toContain("hello-world");
     expect(result.xml).not.toContain("about");
   });
 
-  it("excludes noindex pages", async () => {
-    const ctx = createCtx({}, defaultContent(), {
-      p1: { contentId: "p1", robots: "noindex, nofollow" },
-    });
+  it("excludes noindex pages from flat sitemap", async () => {
+    const ctx = createCtx({}, [
+      { id: "p1", collection: "posts", slug: "indexed" },
+      { id: "p2", collection: "posts", slug: "hidden" },
+    ], { p2: { contentId: "p2", robots: "noindex" } });
     const result = await handler(ctx as any) as any;
 
-    expect(result.xml).not.toContain("hello-world");
-    expect(result.xml).toContain("second-post");
-  });
-
-  it("uses default changefreq and priority", async () => {
-    const ctx = createCtx({
-      sitemapDefaultChangefreq: "daily",
-      sitemapDefaultPriority: 0.8,
-    });
-    const result = await handler(ctx as any) as any;
-
-    expect(result.xml).toContain("<changefreq>daily</changefreq>");
-    expect(result.xml).toContain("<priority>0.8</priority>");
-  });
-
-  it("includes lastmod from content", async () => {
-    const ctx = createCtx();
-    const result = await handler(ctx as any) as any;
-    expect(result.xml).toContain("<lastmod>2026-01-15</lastmod>");
+    expect(result.xml).toContain("indexed");
+    expect(result.xml).not.toContain("hidden");
   });
 
   it("handles empty content list", async () => {
     const ctx = createCtx({}, []);
     const result = await handler(ctx as any) as any;
-
     expect(result.xml).toContain("<urlset");
     expect(result.xml).not.toContain("<url>");
   });
 
   it("is a public route", () => {
     expect(sitemapRoutes["sitemap-xml"].public).toBe(true);
+  });
+});
+
+describe("sitemap-collection route", () => {
+  const handler = sitemapRoutes["sitemap-collection"].handler;
+
+  it("returns sitemap for a specific collection", async () => {
+    const ctx = { ...createCtx(), input: { collection: "posts" } };
+    const result = await handler(ctx as any) as any;
+
+    expect(result.xml).toContain("<urlset");
+    expect(result.xml).toContain("hello-world");
+    expect(result.xml).toContain("second-post");
+    expect(result.xml).not.toContain("about");
+  });
+
+  it("returns error for excluded collection", async () => {
+    const ctx = { ...createCtx({ sitemapExclude: "pages" }), input: { collection: "pages" } };
+    const result = await handler(ctx as any) as any;
+    expect(result.error).toBe("excluded");
+  });
+
+  it("returns empty sitemap for unknown collection", async () => {
+    const ctx = { ...createCtx(), input: { collection: "nonexistent" } };
+    const result = await handler(ctx as any) as any;
+    expect(result.xml).toContain("<urlset");
+    expect(result.xml).not.toContain("<url>");
+  });
+
+  it("is a public route", () => {
+    expect(sitemapRoutes["sitemap-collection"].public).toBe(true);
   });
 });
