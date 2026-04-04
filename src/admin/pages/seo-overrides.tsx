@@ -213,6 +213,11 @@ export function SeoOverridesPage({ callRoute, siteUrl }: SeoOverridesPageProps) 
                     <option value="product">Product</option>
                     <option value="localBusiness">Local Business</option>
                     <option value="event">Event</option>
+                    <option value="recipe">Recipe</option>
+                    <option value="video">Video</option>
+                    <option value="course">Course</option>
+                    <option value="software">Software</option>
+                    <option value="book">Book</option>
                   </select>
                 </div>
               </div>

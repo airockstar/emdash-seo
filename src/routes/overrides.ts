@@ -10,7 +10,7 @@ const OverrideFields = z.object({
   robots: z.string().optional(),
   canonical: z.string().optional(),
   focusKeyword: z.string().optional(),
-  schemaType: z.enum(["faq", "howto", "product", "localBusiness", "event"]).optional(),
+  schemaType: z.enum(["faq", "howto", "product", "localBusiness", "event", "recipe", "video", "course", "software", "book"]).optional(),
   schemaData: z.record(z.string(), z.unknown()).optional(),
 });
 

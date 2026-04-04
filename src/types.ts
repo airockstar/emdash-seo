@@ -7,7 +7,7 @@ export interface SeoOverrides {
   robots?: string;
   canonical?: string;
   focusKeyword?: string;
-  schemaType?: "faq" | "howto" | "product" | "localBusiness" | "event";
+  schemaType?: "faq" | "howto" | "product" | "localBusiness" | "event" | "recipe" | "video" | "course" | "software" | "book";
   schemaData?: Record<string, unknown>;
 }
 
