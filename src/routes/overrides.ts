@@ -9,6 +9,8 @@ const SaveSchema = z.object({
   robots: z.string().optional(),
   canonical: z.string().optional(),
   focusKeyword: z.string().optional(),
+  schemaType: z.enum(["faq", "howto", "product", "localBusiness", "event"]).optional(),
+  schemaData: z.record(z.string(), z.unknown()).optional(),
 });
 
 const GetSchema = z.object({ contentId: z.string() });

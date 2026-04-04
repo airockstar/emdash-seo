@@ -9,6 +9,7 @@ import {
   buildOrganizationSchema,
   buildWebSiteSchema,
 } from "../schemas/jsonld.js";
+import { buildSchemaByType } from "../schemas/structured/index.js";
 
 interface MetadataCtx {
   kv: {
@@ -250,6 +251,14 @@ export async function metadataHandler(
         url: ctx.site.url,
       }),
     });
+  }
+
+  // Custom structured data schema (FAQ, HowTo, Product, etc.) from overrides
+  if (overrides?.schemaType && overrides.schemaData) {
+    const customSchema = buildSchemaByType(overrides.schemaType, overrides.schemaData);
+    if (customSchema) {
+      contributions.push({ kind: "jsonld", graph: customSchema });
+    }
   }
 
   // Verification meta tags (proper page:metadata contributions, not fragments)

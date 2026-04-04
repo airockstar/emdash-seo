@@ -7,6 +7,8 @@ export interface SeoOverrides {
   robots?: string;
   canonical?: string;
   focusKeyword?: string;
+  schemaType?: "faq" | "howto" | "product" | "localBusiness" | "event";
+  schemaData?: Record<string, unknown>;
 }
 
 export interface ResolvedSeoData {
