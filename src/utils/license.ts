@@ -21,6 +21,7 @@ const FEATURE_TIERS: Record<string, LicenseTier> = {
   "bulk-editing": "pro",
   "social-auto-post": "pro",
   "internal-link-suggestions": "pro",
+  "csv-import": "pro",
   "multi-site": "agency",
   "white-label": "agency",
 };

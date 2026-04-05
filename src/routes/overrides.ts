@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { checkLicenseStatus, isFeatureAllowed } from "../utils/license.js";
+import { overridesToCsv, csvToOverrides } from "../utils/csv.js";
 
 const OverrideFields = z.object({
   contentId: z.string(),
@@ -83,6 +84,36 @@ export const overrideRoutes = {
       });
       await ctx.storage.overrides.putMany(entries);
       return { success: true, count: items.length };
+    },
+  },
+
+  "overrides/export": {
+    handler: async (ctx: any) => {
+      const result = await ctx.storage.overrides.query({ limit: 10000 });
+      const csv = overridesToCsv(result.items);
+      return { csv, contentType: "text/csv" };
+    },
+  },
+
+  "overrides/import": {
+    input: z.object({ csv: z.string() }),
+    handler: async (ctx: any) => {
+      const license = await checkLicenseStatus(ctx);
+      if (!isFeatureAllowed("csv-import", license.tier)) {
+        return { error: "pro_required", message: "CSV import requires a Pro license" };
+      }
+
+      const rows = csvToOverrides(ctx.input.csv);
+      if (rows.length === 0) {
+        return { error: "empty", message: "No valid rows found in CSV" };
+      }
+
+      const entries = rows.map((row) => {
+        const { contentId, ...seoData } = row;
+        return { id: contentId, data: { contentId, ...seoData } };
+      });
+      await ctx.storage.overrides.putMany(entries);
+      return { success: true, count: rows.length };
     },
   },
 };

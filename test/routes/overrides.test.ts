@@ -134,6 +134,54 @@ describe("override routes", () => {
     });
   });
 
+  describe("overrides/export", () => {
+    it("exports overrides as CSV", async () => {
+      ctx.input = { contentId: "post-1", collection: "posts", title: "Title 1" };
+      await overrideRoutes["overrides/save"].handler(ctx);
+      ctx.input = { contentId: "post-2", collection: "pages", title: "Title 2" };
+      await overrideRoutes["overrides/save"].handler(ctx);
+
+      ctx.input = {};
+      const result = await overrideRoutes["overrides/export"].handler(ctx);
+      expect(result.contentType).toBe("text/csv");
+      expect(result.csv).toContain("contentId");
+      expect(result.csv).toContain("post-1");
+      expect(result.csv).toContain("post-2");
+    });
+  });
+
+  describe("overrides/import", () => {
+    beforeEach(() => {
+      checkLicenseStatus.mockReset();
+    });
+
+    it("imports CSV with pro license", async () => {
+      mockProLicense();
+      ctx.input = { csv: "contentId,collection,title\npost-1,posts,Imported Title\npost-2,pages,Other" };
+      const result = await overrideRoutes["overrides/import"].handler(ctx);
+      expect(result.success).toBe(true);
+      expect(result.count).toBe(2);
+
+      ctx.input = { contentId: "post-1" };
+      const get1 = await overrideRoutes["overrides/get"].handler(ctx);
+      expect(get1.overrides?.title).toBe("Imported Title");
+    });
+
+    it("requires pro license", async () => {
+      mockFreeLicense();
+      ctx.input = { csv: "contentId,title\npost-1,Title" };
+      const result = await overrideRoutes["overrides/import"].handler(ctx);
+      expect(result.error).toBe("pro_required");
+    });
+
+    it("returns error for empty CSV", async () => {
+      mockProLicense();
+      ctx.input = { csv: "contentId,title" };
+      const result = await overrideRoutes["overrides/import"].handler(ctx);
+      expect(result.error).toBe("empty");
+    });
+  });
+
   describe("overrides/bulk-save", () => {
     beforeEach(() => {
       checkLicenseStatus.mockReset();
