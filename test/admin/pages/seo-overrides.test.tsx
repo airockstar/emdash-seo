@@ -429,6 +429,59 @@ describe("SeoOverridesPage", () => {
     });
   });
 
+  // Breadcrumb Label field
+  it("edit panel has Breadcrumb Label field", async () => {
+    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    await waitFor(() => {
+      expect(screen.getByText("post-1")).toBeDefined();
+    });
+    fireEvent.click(screen.getByLabelText("Edit post-1"));
+    expect(screen.getByLabelText("Breadcrumb Label")).toBeDefined();
+    const input = document.getElementById("seo-breadcrumb") as HTMLInputElement;
+    expect(input).not.toBeNull();
+    expect(input.type).toBe("text");
+  });
+
+  // CSV Export button exists
+  it("has CSV Export button", async () => {
+    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    await waitFor(() => {
+      expect(screen.getByText("post-1")).toBeDefined();
+    });
+    expect(screen.getByText("CSV Export")).toBeDefined();
+  });
+
+  // CSV Import button exists
+  it("has CSV Import (Pro) button", async () => {
+    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    await waitFor(() => {
+      expect(screen.getByText("post-1")).toBeDefined();
+    });
+    expect(screen.getByText("CSV Import (Pro)")).toBeDefined();
+  });
+
+  // CSV Export calls overrides/export
+  it("CSV Export calls overrides/export route", async () => {
+    const mockUrl = "blob:test";
+    const createObjectURL = vi.fn(() => mockUrl);
+    const revokeObjectURL = vi.fn();
+    Object.defineProperty(URL, "createObjectURL", { value: createObjectURL, writable: true });
+    Object.defineProperty(URL, "revokeObjectURL", { value: revokeObjectURL, writable: true });
+
+    callRoute = vi.fn().mockImplementation((route: string) => {
+      if (route === "overrides/export") return Promise.resolve({ csv: "contentId,title\np-1,Test" });
+      return Promise.resolve({ items: MOCK_OVERRIDES });
+    });
+    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    await waitFor(() => {
+      expect(screen.getByText("post-1")).toBeDefined();
+    });
+    fireEvent.click(screen.getByText("CSV Export"));
+    await waitFor(() => {
+      expect(callRoute).toHaveBeenCalledWith("overrides/export");
+    });
+  });
+
   // Schema Type included in save payload
   it("Schema Type is included in save payload", async () => {
     render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);

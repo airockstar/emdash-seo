@@ -17,6 +17,7 @@ interface Override {
     canonical?: string;
     focusKeyword?: string;
     schemaType?: string;
+    breadcrumbLabel?: string;
   };
 }
 
@@ -28,12 +29,13 @@ export interface SeoOverridesPageProps {
 export function SeoOverridesPage({ callRoute, siteUrl }: SeoOverridesPageProps) {
   const [overrides, setOverrides] = useState<Override[]>([]);
   const [editing, setEditing] = useState<string | null>(null);
-  const [form, setForm] = useState({ title: "", description: "", focusKeyword: "", robots: "", canonical: "", ogImage: "", schemaType: "" });
+  const [form, setForm] = useState({ title: "", description: "", focusKeyword: "", robots: "", canonical: "", ogImage: "", schemaType: "", breadcrumbLabel: "" });
   const [filter, setFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const lastFilterRef = useRef("");
   const editRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { loadOverrides(); }, []);
 
@@ -53,8 +55,8 @@ export function SeoOverridesPage({ callRoute, siteUrl }: SeoOverridesPageProps) 
   async function save(contentId: string) {
     try {
       const override = overrides.find((o) => o.id === contentId);
-      const { schemaType, ...rest } = form;
-      await callRoute("overrides/save", { contentId, collection: override?.data.collection ?? "", ...rest, schemaType: schemaType || undefined });
+      const { schemaType, breadcrumbLabel, ...rest } = form;
+      await callRoute("overrides/save", { contentId, collection: override?.data.collection ?? "", ...rest, schemaType: schemaType || undefined, breadcrumbLabel: breadcrumbLabel || undefined });
       setEditing(null);
       loadOverrides();
     } catch (e: any) {
@@ -82,8 +84,38 @@ export function SeoOverridesPage({ callRoute, siteUrl }: SeoOverridesPageProps) 
       canonical: override.data.canonical ?? "",
       ogImage: override.data.ogImage ?? "",
       schemaType: override.data.schemaType ?? "",
+      breadcrumbLabel: override.data.breadcrumbLabel ?? "",
     });
     setTimeout(() => editRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 100);
+  }
+
+  async function exportCsv() {
+    try {
+      const result = await callRoute("overrides/export") as { csv: string };
+      const blob = new Blob([result.csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "seo-overrides.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      setError(e.message ?? "Export failed");
+    }
+  }
+
+  async function importCsv(file: File) {
+    try {
+      const csv = await file.text();
+      const result = await callRoute("overrides/import", { csv }) as { success?: boolean; error?: string; message?: string; count?: number };
+      if (result.error) {
+        setError(result.message ?? result.error);
+      } else {
+        loadOverrides();
+      }
+    } catch (e: any) {
+      setError(e.message ?? "Import failed");
+    }
   }
 
   function handleFilterKeyDown(e: React.KeyboardEvent) {
@@ -98,7 +130,22 @@ export function SeoOverridesPage({ callRoute, siteUrl }: SeoOverridesPageProps) 
     <div className="seo-plugin">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <h2 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 600 }}>SEO Overrides</h2>
-        <span style={{ fontSize: "0.8125rem", color: colors.textSecondary }}>{overrides.length} items</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: "0.8125rem", color: colors.textSecondary }}>{overrides.length} items</span>
+          <button className="seo-btn seo-btn-secondary seo-btn-sm" onClick={exportCsv}>CSV Export</button>
+          <button className="seo-btn seo-btn-secondary seo-btn-sm" onClick={() => fileInputRef.current?.click()}>CSV Import (Pro)</button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) importCsv(file);
+              e.target.value = "";
+            }}
+          />
+        </div>
       </div>
 
       {error && <ErrorBanner message={error} />}
@@ -219,6 +266,11 @@ export function SeoOverridesPage({ callRoute, siteUrl }: SeoOverridesPageProps) 
                     <option value="software">Software</option>
                     <option value="book">Book</option>
                   </select>
+                </div>
+                <div>
+                  <label htmlFor="seo-breadcrumb" className="seo-label">Breadcrumb Label</label>
+                  <input id="seo-breadcrumb" className="seo-input" type="text" value={form.breadcrumbLabel}
+                    onChange={(e) => setForm({ ...form, breadcrumbLabel: e.target.value })} placeholder="Custom breadcrumb text" />
                 </div>
               </div>
             </div>

@@ -362,6 +362,68 @@ describe("ContentAnalysisPage", () => {
     });
   });
 
+  // Orphaned Content section is visible
+  it("shows Orphaned Content section", () => {
+    const callRoute = vi.fn();
+    render(<ContentAnalysisPage callRoute={callRoute} />);
+    expect(screen.getByText("Orphaned Content")).toBeDefined();
+    expect(screen.getByText("Find Orphaned (Pro)")).toBeDefined();
+  });
+
+  // Broken Links section is visible
+  it("shows Broken Links section", () => {
+    const callRoute = vi.fn();
+    render(<ContentAnalysisPage callRoute={callRoute} />);
+    expect(screen.getByText("Broken Links")).toBeDefined();
+    expect(screen.getByText("Check Links (Pro)")).toBeDefined();
+  });
+
+  // Search Stats section is visible
+  it("shows Search Stats section", () => {
+    const callRoute = vi.fn();
+    render(<ContentAnalysisPage callRoute={callRoute} />);
+    expect(screen.getByText("Search Stats")).toBeDefined();
+    expect(screen.getByText("Fetch Stats (Pro)")).toBeDefined();
+  });
+
+  // Orphaned Content button calls analyze/orphaned
+  it("clicking Find Orphaned calls analyze/orphaned", async () => {
+    const callRoute = vi.fn().mockResolvedValue({ orphaned: [{ id: "p-1", title: "Orphan", url: "/blog/orphan" }] });
+    render(<ContentAnalysisPage callRoute={callRoute} />);
+
+    fireEvent.click(screen.getByText("Find Orphaned (Pro)"));
+    await waitFor(() => {
+      expect(callRoute).toHaveBeenCalledWith("analyze/orphaned");
+      expect(screen.getByText("Orphan")).toBeDefined();
+    });
+  });
+
+  // Broken Links button calls analyze/broken-links
+  it("clicking Check Links calls analyze/broken-links", async () => {
+    const callRoute = vi.fn().mockResolvedValue({ broken: [{ url: "/missing", status: 404, text: "Missing" }] });
+    render(<ContentAnalysisPage callRoute={callRoute} />);
+
+    fireEvent.change(screen.getByLabelText("Content ID"), { target: { value: "post-1" } });
+    fireEvent.click(screen.getByText("Check Links (Pro)"));
+    await waitFor(() => {
+      expect(callRoute).toHaveBeenCalledWith("analyze/broken-links", { contentId: "post-1" });
+      expect(screen.getByText("Missing")).toBeDefined();
+    });
+  });
+
+  // Search Stats button calls analyze/search-stats
+  it("clicking Fetch Stats calls analyze/search-stats", async () => {
+    const callRoute = vi.fn().mockResolvedValue({ stats: [{ query: "test", clicks: 10, impressions: 100, ctr: 0.1, position: 2.5 }] });
+    render(<ContentAnalysisPage callRoute={callRoute} />);
+
+    fireEvent.click(screen.getByText("Fetch Stats (Pro)"));
+    await waitFor(() => {
+      expect(callRoute).toHaveBeenCalledWith("analyze/search-stats");
+      expect(screen.getByText("test")).toBeDefined();
+      expect(screen.getByText("10")).toBeDefined();
+    });
+  });
+
   // Alt Suggestions section appears when present in results
   it("shows Alt Suggestions section when present in results", async () => {
     const altSuggestions = [

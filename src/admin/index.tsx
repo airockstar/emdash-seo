@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { globalStyles } from "./styles.js";
 import { SeoOverridesPage } from "./pages/seo-overrides.js";
 import { ContentAnalysisPage } from "./pages/content-analysis.js";
+import { RedirectsPage } from "./pages/redirects.js";
 import { SeoStatusWidget } from "./widgets/seo-status.js";
 import { SeoScoreWidget } from "./widgets/seo-score.js";
 import { SeoFieldsWidget } from "./widgets/seo-fields.js";
@@ -29,6 +30,7 @@ function withStyles<P extends object>(Component: React.ComponentType<P>) {
 export const pages = {
   "seo-overrides": withStyles(SeoOverridesPage),
   "content-analysis": withStyles(ContentAnalysisPage),
+  redirects: withStyles(RedirectsPage),
 };
 
 export const widgets = {

@@ -69,6 +69,7 @@ const definition: PluginDefinition = {
     pages: [
       { path: "seo-overrides", label: "SEO Overrides", icon: "search" },
       { path: "content-analysis", label: "Content Analysis", icon: "chart" },
+      { path: "redirects", label: "Redirects", icon: "link" },
     ],
     widgets: [
       { id: "seo-status", title: "SEO Status", size: "half" },
