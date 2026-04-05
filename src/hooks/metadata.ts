@@ -231,7 +231,7 @@ export async function metadataHandler(
 
   contributions.push({
     kind: "jsonld",
-    graph: buildBreadcrumbSchema(page.url, defaults.siteName),
+    graph: buildBreadcrumbSchema(page.url, defaults.siteName, overrides?.breadcrumbLabel),
   });
 
   if (defaults.orgName) {

@@ -115,6 +115,31 @@ describe("buildBreadcrumbSchema", () => {
     expect(items).toHaveLength(1);
     expect(items[0].name).toBe("Home");
   });
+
+  it("uses custom label for last breadcrumb item", () => {
+    const result = buildBreadcrumbSchema(
+      "https://example.com/blog/my-post",
+      "Example",
+      "Custom Post Title",
+    );
+    const items = result.itemListElement as Array<Record<string, unknown>>;
+
+    expect(items).toHaveLength(3);
+    expect(items[2].name).toBe("Custom Post Title");
+    // Middle items should not be affected
+    expect(items[1].name).toBe("Blog");
+  });
+
+  it("ignores custom label when undefined", () => {
+    const result = buildBreadcrumbSchema(
+      "https://example.com/blog/my-post",
+      "Example",
+      undefined,
+    );
+    const items = result.itemListElement as Array<Record<string, unknown>>;
+
+    expect(items[2].name).toBe("My post");
+  });
 });
 
 describe("buildOrganizationSchema", () => {

@@ -9,6 +9,7 @@ export interface SeoOverrides {
   focusKeyword?: string;
   schemaType?: "faq" | "howto" | "product" | "localBusiness" | "event" | "recipe" | "video" | "course" | "software" | "book";
   schemaData?: Record<string, unknown>;
+  breadcrumbLabel?: string;
 }
 
 export interface ResolvedSeoData {

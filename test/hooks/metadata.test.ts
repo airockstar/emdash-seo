@@ -270,6 +270,21 @@ describe("metadataHandler", () => {
     );
   });
 
+  it("uses custom breadcrumb label from overrides", async () => {
+    const ctx = createCtx();
+    ctx.storage.overrides._store.set("post-1", {
+      contentId: "post-1",
+      breadcrumbLabel: "Custom Crumb",
+    } as any);
+
+    const result = await metadataHandler({ page: articlePage }, ctx);
+    const breadcrumb = findJsonld(result, "BreadcrumbList");
+    const items = breadcrumb.graph.itemListElement as Array<Record<string, unknown>>;
+    const lastItem = items[items.length - 1];
+
+    expect(lastItem.name).toBe("Custom Crumb");
+  });
+
   it("skips description meta when no description", async () => {
     const ctx = createCtx({ defaultOgImage: "" });
     const result = await metadataHandler({ page: noSeoPage }, ctx);

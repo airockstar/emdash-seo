@@ -63,6 +63,7 @@ export function buildWebPageSchema(data: {
 export function buildBreadcrumbSchema(
   url: string,
   siteName: string,
+  customLabel?: string,
 ): Record<string, unknown> {
   const parsed = new URL(url);
   const segments = parsed.pathname
@@ -81,10 +82,11 @@ export function buildBreadcrumbSchema(
   let currentPath = "";
   for (let i = 0; i < segments.length; i++) {
     currentPath += `/${segments[i]}`;
+    const isLast = i === segments.length - 1;
     items.push({
       "@type": "ListItem",
       position: i + 2,
-      name: capitalize(segments[i].replace(/-/g, " ")),
+      name: isLast && customLabel ? customLabel : capitalize(segments[i].replace(/-/g, " ")),
       item: `${parsed.origin}${currentPath}`,
     });
   }
