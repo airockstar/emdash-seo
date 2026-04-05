@@ -17,6 +17,8 @@ import { calculateScore } from "../analysis/score.js";
 import { checkLicenseStatus, isFeatureAllowed } from "../utils/license.js";
 import { suggestInternalLinks } from "../analysis/link-suggestions.js";
 import { suggestAltText } from "../analysis/alt-suggestions.js";
+import { findOrphanedContent } from "../analysis/orphaned-content.js";
+import { checkBrokenLinks } from "../analysis/broken-links.js";
 
 function runFreeChecks(
   title: string | undefined,
@@ -182,6 +184,51 @@ export const analyzeRoutes = {
       );
 
       return { suggestions };
+    },
+  },
+
+  "analyze/orphaned": {
+    handler: async (ctx: any) => {
+      const license = await checkLicenseStatus(ctx);
+      if (!isFeatureAllowed("orphaned-content", license.tier)) {
+        return { error: "pro_required", message: "Orphaned content detection requires a Pro license" };
+      }
+
+      const allItems = await fetchAllContent(ctx);
+
+      // Gather all internal links from all content bodies
+      const allLinks: Array<{ href: string; internal: boolean }> = [];
+      for (const item of allItems) {
+        const blocks = (item.data.body as unknown[]) ?? [];
+        const links = extractLinks(blocks as any, ctx.site.url);
+        allLinks.push(...links);
+      }
+
+      const orphaned = findOrphanedContent(allItems, allLinks, ctx.site.url);
+      return { orphaned };
+    },
+  },
+
+  "analyze/broken-links": {
+    input: AnalyzeInput,
+    handler: async (ctx: any) => {
+      const license = await checkLicenseStatus(ctx);
+      if (!isFeatureAllowed("broken-links", license.tier)) {
+        return { error: "pro_required", message: "Broken link checking requires a Pro license" };
+      }
+
+      const content = await ctx.content.get(ctx.input.contentId);
+      if (!content) {
+        return { error: "not_found", message: "Content not found" };
+      }
+
+      const blocks = content.body ?? [];
+      const links = extractLinks(blocks as any, ctx.site.url);
+
+      // Only check internal links (safer — no unrestricted outbound fetch needed)
+      const internalLinks = links.filter((l) => l.internal);
+      const broken = await checkBrokenLinks(internalLinks, ctx.http, ctx.site.url);
+      return { broken };
     },
   },
 };

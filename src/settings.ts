@@ -100,6 +100,14 @@ export const SETTINGS_SCHEMA = {
   // Phase 11: IndexNow
   indexNowApiKey: { type: "string" as const, label: "IndexNow API Key", default: "" },
 
+  // Phase 12: Specialty Sitemaps
+  newsSitemapEnabled: { type: "boolean" as const, label: "Enable News Sitemap", default: false },
+  videoSitemapEnabled: { type: "boolean" as const, label: "Enable Video Sitemap", default: false },
+  imageSitemapEnabled: { type: "boolean" as const, label: "Enable Image Sitemap", default: false },
+
+  // Phase 13: Google Search Console
+  gscAccessToken: { type: "secret" as const, label: "Google Search Console Access Token" },
+
   // Phase 7: Licensing
   licenseKey: { type: "secret" as const, label: "License Key" },
 };
