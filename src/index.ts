@@ -16,13 +16,14 @@ import { analyzeRoutes } from "./routes/analyze.js";
 import { scoresRoutes } from "./routes/scores.js";
 import { socialRoutes } from "./routes/social.js";
 import { licenseRoutes } from "./routes/license.js";
+import { redirectRoutes } from "./routes/redirects.js";
 
 const definition: PluginDefinition = {
   id: "@emdash-seo/toolkit",
   version: "0.1.0",
 
   capabilities: CAPABILITIES,
-  allowedHosts: ["api.twitter.com", "api.x.com", "bsky.social", "*.bsky.social", "api.indexnow.org"],
+  allowedHosts: ["api.twitter.com", "api.x.com", "bsky.social", "*.bsky.social", "api.indexnow.org", "www.googleapis.com"],
   storage: STORAGE,
 
   hooks: {
@@ -52,6 +53,7 @@ const definition: PluginDefinition = {
     ...scoresRoutes,
     ...socialRoutes,
     ...licenseRoutes,
+    ...redirectRoutes,
   } as any,
 
   admin: {

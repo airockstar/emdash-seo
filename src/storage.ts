@@ -16,4 +16,7 @@ export const STORAGE = {
       ["contentId", "postedAt"],
     ],
   },
+  redirects: {
+    indexes: ["from", "status", "createdAt"],
+  },
 };

@@ -101,6 +101,7 @@ export function createMockCtx(options: MockCtxOptions = {}) {
       overrides: createMockCollection(options.overrides ?? {}),
       scores: createMockCollection(options.scores ?? {}),
       socialPosts: createMockCollection({}),
+      redirects: createMockCollection({}),
     },
     log: {
       debug: vi.fn(),

@@ -19,6 +19,7 @@ import { suggestInternalLinks } from "../analysis/link-suggestions.js";
 import { suggestAltText } from "../analysis/alt-suggestions.js";
 import { findOrphanedContent } from "../analysis/orphaned-content.js";
 import { checkBrokenLinks } from "../analysis/broken-links.js";
+import { fetchSearchAnalytics } from "../utils/gsc.js";
 
 function runFreeChecks(
   title: string | undefined,
@@ -229,6 +230,31 @@ export const analyzeRoutes = {
       const internalLinks = links.filter((l) => l.internal);
       const broken = await checkBrokenLinks(internalLinks, ctx.http, ctx.site.url);
       return { broken };
+    },
+  },
+
+  "analyze/search-stats": {
+    handler: async (ctx: any) => {
+      const license = await checkLicenseStatus(ctx);
+      if (!isFeatureAllowed("search-console", license.tier)) {
+        return { error: "pro_required", message: "Search Console integration requires a Pro license" };
+      }
+
+      const accessToken = (await ctx.kv.get("settings:gscAccessToken")) as string | null;
+      if (!accessToken) {
+        return { error: "not_configured", message: "Google Search Console access token is not configured" };
+      }
+
+      const now = new Date();
+      const endDate = now.toISOString().slice(0, 10);
+      const startDate = new Date(now.getTime() - 28 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+      try {
+        const stats = await fetchSearchAnalytics(ctx.http, accessToken, ctx.site.url, startDate, endDate);
+        return { stats, startDate, endDate };
+      } catch (e: any) {
+        return { error: "gsc_error", message: e.message ?? "Failed to fetch search analytics" };
+      }
     },
   },
 };
