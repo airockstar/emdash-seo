@@ -34,7 +34,8 @@ export async function fetchSearchAnalytics(
   });
 
   if (!response.ok) {
-    throw new Error(`GSC API returned status ${response.status}`);
+    const body = await response.text();
+    throw new Error(`GSC API error ${response.status}: ${body}`);
   }
 
   const data = (await response.json()) as {

@@ -50,6 +50,7 @@ export function ContentAnalysisPage({ callRoute }: ContentAnalysisPageProps) {
   }
 
   async function loadOrphaned() {
+    setError("");
     setOrphanedLoading(true);
     try {
       const data = await callRoute("analyze/orphaned") as any;
@@ -67,6 +68,7 @@ export function ContentAnalysisPage({ callRoute }: ContentAnalysisPageProps) {
 
   async function loadBrokenLinks() {
     if (!contentId.trim()) return;
+    setError("");
     setBrokenLoading(true);
     try {
       const data = await callRoute("analyze/broken-links", { contentId: contentId.trim() }) as any;
@@ -83,6 +85,7 @@ export function ContentAnalysisPage({ callRoute }: ContentAnalysisPageProps) {
   }
 
   async function loadSearchStats() {
+    setError("");
     setSearchStatsLoading(true);
     try {
       const data = await callRoute("analyze/search-stats") as any;

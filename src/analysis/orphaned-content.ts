@@ -1,3 +1,5 @@
+import { buildContentUrl } from "../utils/url.js";
+
 export interface OrphanedItem {
   id: string;
   title?: string;
@@ -28,9 +30,7 @@ export function findOrphanedContent(
   for (const item of allContent) {
     const slug = (item.data.slug as string) || item.id;
     const collection = item.data.collection as string | undefined;
-    const url = collection
-      ? `${siteUrl}/${collection}/${slug}`
-      : `${siteUrl}/${slug}`;
+    const url = buildContentUrl(siteUrl, collection, slug);
 
     if (!linkedUrls.has(url.replace(/\/+$/, ""))) {
       orphaned.push({

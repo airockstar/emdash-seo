@@ -4,6 +4,7 @@ import { buildNewsSitemapXml, type NewsSitemapEntry } from "../schemas/sitemap-n
 import { buildVideoSitemapXml, type VideoSitemapEntry } from "../schemas/sitemap-video.js";
 import { buildImageSitemapXml, type ImageSitemapEntry } from "../schemas/sitemap-image.js";
 import { fetchAllContent } from "../utils/content.js";
+import { buildContentUrl } from "../utils/url.js";
 
 interface SitemapCtx {
   kv: { get<T>(key: string): Promise<T | null> };
@@ -52,7 +53,7 @@ async function buildEntries(
 
     const slug = (item.data.slug as string) || item.id;
     entries.push({
-      loc: `${ctx.site.url}/${item.data.collection}/${slug}`,
+      loc: buildContentUrl(ctx.site.url, item.data.collection as string, slug),
       lastmod: item.data.updatedAt as string | undefined,
       changefreq,
       priority,
@@ -142,7 +143,7 @@ export const sitemapRoutes = {
         const slug = (item.data.slug as string) || item.id;
         const collection = item.data.collection as string | undefined;
         entries.push({
-          loc: collection ? `${ctx.site.url}/${collection}/${slug}` : `${ctx.site.url}/${slug}`,
+          loc: buildContentUrl(ctx.site.url, collection, slug),
           publicationName: ctx.site.name ?? "",
           language: ctx.site.locale ?? "en",
           publicationDate: publishedAt,
@@ -172,7 +173,7 @@ export const sitemapRoutes = {
         const slug = (item.data.slug as string) || item.id;
         const collection = item.data.collection as string | undefined;
         entries.push({
-          loc: collection ? `${ctx.site.url}/${collection}/${slug}` : `${ctx.site.url}/${slug}`,
+          loc: buildContentUrl(ctx.site.url, collection, slug),
           thumbnailUrl: (item.data.videoThumbnail as string) ?? (item.data.image as string) ?? "",
           title: (item.data.title as string) ?? "",
           description: (item.data.description as string) ?? "",
@@ -208,7 +209,7 @@ export const sitemapRoutes = {
         ];
 
         entries.push({
-          loc: collection ? `${ctx.site.url}/${collection}/${slug}` : `${ctx.site.url}/${slug}`,
+          loc: buildContentUrl(ctx.site.url, collection, slug),
           images,
         });
       }

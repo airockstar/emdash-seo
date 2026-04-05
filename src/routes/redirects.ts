@@ -32,12 +32,14 @@ export const redirectRoutes = {
     input: SaveSchema,
     handler: async (ctx: any) => {
       const { id, from, to, status } = ctx.input;
-      const redirectId = id || `redirect-${Date.now()}`;
+      const redirectId = id || `redirect-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const existing = id ? await ctx.storage.redirects.get(id) : null;
+      const createdAt = existing?.createdAt ?? new Date().toISOString();
       await ctx.storage.redirects.put(redirectId, {
         from,
         to,
         status,
-        createdAt: new Date().toISOString(),
+        createdAt,
       });
       return { success: true, id: redirectId };
     },

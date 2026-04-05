@@ -7,6 +7,7 @@ function mockHttp(responseBody: unknown, status = 200) {
       ok: status >= 200 && status < 300,
       status,
       json: async () => responseBody,
+      text: async () => JSON.stringify(responseBody),
     })) as any,
   };
 }
@@ -65,6 +66,6 @@ describe("fetchSearchAnalytics", () => {
     const http = mockHttp({}, 401);
     await expect(
       fetchSearchAnalytics(http, "bad-token", "https://example.com", "2024-01-01", "2024-01-31"),
-    ).rejects.toThrow("GSC API returned status 401");
+    ).rejects.toThrow("GSC API error 401:");
   });
 });

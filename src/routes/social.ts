@@ -2,6 +2,7 @@ import { z } from "zod";
 import { postToTwitter } from "../utils/social/twitter.js";
 import { postToBluesky } from "../utils/social/bluesky.js";
 import { checkLicenseStatus, isFeatureAllowed } from "../utils/license.js";
+import { buildContentUrl } from "../utils/url.js";
 
 const PostInput = z.object({
   contentId: z.string(),
@@ -41,7 +42,7 @@ export const socialRoutes = {
       const postTemplate = template ?? "New: {title} \u2014 {url}";
       const contentData = {
         title: content.title,
-        url: `${ctx.site.url}/${content.collection}/${content.slug ?? contentId}`,
+        url: buildContentUrl(ctx.site.url, content.collection, content.slug, contentId),
         description: content.description,
       };
 

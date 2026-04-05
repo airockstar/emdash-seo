@@ -1,3 +1,5 @@
+import { buildContentUrl } from "../utils/url.js";
+
 export interface LinkSuggestion {
   targetId: string;
   targetTitle: string;
@@ -38,12 +40,12 @@ export function suggestInternalLinks(
     // Check if full title appears in text (highest relevance)
     const lowerTitle = title.toLowerCase();
     if (lowerText.includes(lowerTitle)) {
-      const collection = item.data.collection ?? "";
+      const collection = item.data.collection;
       const slug = item.data.slug ?? item.id;
       suggestions.push({
         targetId: item.id,
         targetTitle: title,
-        targetUrl: `${siteUrl}/${collection}${collection ? "/" : ""}${slug}`,
+        targetUrl: buildContentUrl(siteUrl, collection, slug),
         matchedPhrase: title,
         relevanceScore: 1.0,
       });
@@ -61,13 +63,13 @@ export function suggestInternalLinks(
     if (matchedWords.length < 2) continue; // require at least 2 significant word matches
 
     const relevanceScore = Math.round((matchedWords.length / titleWords.length) * 100) / 100;
-    const collection = item.data.collection ?? "";
+    const collection = item.data.collection;
     const slug = item.data.slug ?? item.id;
 
     suggestions.push({
       targetId: item.id,
       targetTitle: title,
-      targetUrl: `${siteUrl}/${collection}${collection ? "/" : ""}${slug}`,
+      targetUrl: buildContentUrl(siteUrl, collection, slug),
       matchedPhrase: matchedWords.join(" "),
       relevanceScore,
     });

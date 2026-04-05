@@ -48,7 +48,7 @@ export function RedirectsPage({ callRoute }: RedirectsPageProps) {
       });
       setEditing(null);
       setForm({ from: "", to: "", status: 301 });
-      loadRedirects();
+      await loadRedirects();
     } catch (e: any) {
       setError(e.message ?? "Failed to save redirect");
     }
@@ -58,7 +58,7 @@ export function RedirectsPage({ callRoute }: RedirectsPageProps) {
     if (!confirm(`Delete redirect "${id}"?`)) return;
     try {
       await callRoute("redirects/delete", { id });
-      loadRedirects();
+      await loadRedirects();
     } catch (e: any) {
       setError(e.message ?? "Failed to delete redirect");
     }

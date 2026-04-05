@@ -8,6 +8,7 @@ import { postToTwitter } from "../utils/social/twitter.js";
 import { postToBluesky } from "../utils/social/bluesky.js";
 import { checkLicenseStatus, isFeatureAllowed } from "../utils/license.js";
 import { pingIndexNow } from "../utils/indexnow.js";
+import { buildContentUrl } from "../utils/url.js";
 
 export const contentAfterSaveHook = async (event: any, ctx: any) => {
   const { content, collection, isNew } = event;
@@ -51,7 +52,7 @@ export const contentAfterSaveHook = async (event: any, ctx: any) => {
     try {
       const indexNowApiKey = (await ctx.kv.get("settings:indexNowApiKey")) as string | null;
       if (indexNowApiKey) {
-        const pageUrl = `${ctx.site.url}/${collection}/${content.slug ?? content.id}`;
+        const pageUrl = buildContentUrl(ctx.site.url, collection, content.slug, content.id);
         const host = new URL(ctx.site.url).hostname;
         const result = await pingIndexNow(ctx.http, pageUrl, indexNowApiKey, host);
         if (!result.success) {
@@ -84,7 +85,7 @@ export const contentAfterSaveHook = async (event: any, ctx: any) => {
   const postTemplate = template ?? "New: {title} \u2014 {url}";
   const contentData = {
     title: content.title,
-    url: `${ctx.site.url}/${collection}/${content.slug ?? content.id}`,
+    url: buildContentUrl(ctx.site.url, collection, content.slug, content.id),
     description: content.description,
   };
 
