@@ -11,6 +11,7 @@ import { checkReadability, checkPassiveVoice, checkSentenceLength, checkTransiti
 import { checkKeywordDensity, checkKeywordInFirstParagraph } from "../analysis/keywords.js";
 import { checkOgImage } from "../analysis/og-image.js";
 import { checkInternalLinks } from "../analysis/links.js";
+import { checkOutboundLinks } from "../analysis/outbound-links.js";
 import { checkDuplicateTitle, checkDuplicateDescription } from "../analysis/duplicates.js";
 import { calculateScore } from "../analysis/score.js";
 import { checkLicenseStatus, isFeatureAllowed } from "../utils/license.js";
@@ -22,9 +23,11 @@ function runFreeChecks(
   description: string | undefined,
   keyword: string | undefined,
   blocks: unknown[],
+  siteUrl?: string,
 ): SeoCheck[] {
   const headings = extractHeadings(blocks as any);
   const images = extractImages(blocks as any);
+  const links = extractLinks(blocks as any, siteUrl);
 
   return [
     checkTitleLength(title),
@@ -34,6 +37,7 @@ function runFreeChecks(
     checkSingleH1(headings),
     checkHeadingHierarchy(headings),
     checkImageAltText(images),
+    checkOutboundLinks(links),
   ];
 }
 
@@ -81,7 +85,7 @@ export const analyzeRoutes = {
       const blocks = content.body ?? [];
 
       const ogImage = overrides?.ogImage ?? content.image;
-      const checks = runFreeChecks(title, description, keyword, blocks);
+      const checks = runFreeChecks(title, description, keyword, blocks, ctx.site.url);
       const ogCheck = await checkOgImage(ogImage, ctx.media);
       checks.push(ogCheck);
       const score = calculateScore(checks);
@@ -125,7 +129,7 @@ export const analyzeRoutes = {
       const images = extractImages(blocks as any);
 
       const ogImage = overrides?.ogImage ?? content.image;
-      const freeChecks = runFreeChecks(title, description, keyword, blocks);
+      const freeChecks = runFreeChecks(title, description, keyword, blocks, ctx.site.url);
       const ogCheck = await checkOgImage(ogImage, ctx.media);
       freeChecks.push(ogCheck);
       const paidChecks = runPaidChecks(
