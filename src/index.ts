@@ -18,8 +18,8 @@ import { socialRoutes } from "./routes/social.js";
 import { licenseRoutes } from "./routes/license.js";
 import { redirectRoutes } from "./routes/redirects.js";
 
-const ID = "@emdash-seo/toolkit";
-const VERSION = "0.3.0";
+const ID = "emdash-seo";
+const VERSION = "0.3.1";
 
 // ─── Plugin Descriptor (for astro.config.mjs) ───────────────────
 
