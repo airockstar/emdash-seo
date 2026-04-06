@@ -51,17 +51,24 @@ export function SeoScoreWidget({ callRoute }: SeoScoreWidgetProps) {
   }
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-      <ScoreBadge score={avg} size={72} />
-      <div>
-        <div style={{ fontSize: "0.75rem", color: colors.textSecondary, marginBottom: 8 }}>
-          Site Average ({scores.length} pages)
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+        <ScoreBadge score={avg} size={72} />
+        <div>
+          <div style={{ fontSize: "0.75rem", color: colors.textSecondary, marginBottom: 8 }}>
+            Site Average ({scores.length} pages)
+          </div>
+          <div style={{ display: "flex", gap: 12, fontSize: "0.8125rem" }}>
+            <span className="seo-badge seo-badge-success">{good} good</span>
+            <span className="seo-badge seo-badge-warning">{fair} fair</span>
+            <span className="seo-badge seo-badge-error">{poor} poor</span>
+          </div>
         </div>
-        <div style={{ display: "flex", gap: 12, fontSize: "0.8125rem" }}>
-          <span className="seo-badge seo-badge-success">{good} good</span>
-          <span className="seo-badge seo-badge-warning">{fair} fair</span>
-          <span className="seo-badge seo-badge-error">{poor} poor</span>
-        </div>
+      </div>
+      <div style={{ marginTop: 12, fontSize: "0.75rem", textAlign: "center" }}>
+        <a href="https://emdashseo.app/#pricing" target="_blank" rel="noopener" style={{ color: "#0bd68f", textDecoration: "none" }}>
+          Upgrade to Pro for advanced checks →
+        </a>
       </div>
     </div>
   );

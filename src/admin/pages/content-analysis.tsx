@@ -131,6 +131,17 @@ export function ContentAnalysisPage({ callRoute }: ContentAnalysisPageProps) {
 
       {error && <ErrorBanner message={error} />}
 
+      {error && error.includes("Pro") && (
+        <div style={{ padding: "16px", background: "rgba(11,214,143,0.08)", border: "1px solid rgba(11,214,143,0.2)", borderRadius: "8px", marginBottom: 16, textAlign: "center" }}>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>Unlock Advanced Analysis</div>
+          <div style={{ fontSize: "0.8125rem", color: colors.textSecondary, marginBottom: 12 }}>Get readability checks, link suggestions, broken link detection, and more.</div>
+          <a href="https://emdashseo.app/#pricing" target="_blank" rel="noopener"
+            style={{ display: "inline-block", padding: "8px 20px", background: "#0bd68f", color: "#0a0a0c", borderRadius: "6px", textDecoration: "none", fontWeight: 600, fontSize: "0.8125rem" }}>
+            Upgrade to Pro — $49/yr
+          </a>
+        </div>
+      )}
+
       {result && (
         <div className="seo-card seo-fade-in">
           <div style={{ padding: "20px 16px", display: "flex", alignItems: "center", gap: 20, borderBottom: `1px solid ${colors.borderSubtle}` }}>

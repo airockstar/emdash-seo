@@ -1,0 +1,22 @@
+name: Monitor Emdash Marketplace
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # Every Monday at 9am UTC
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for marketplace updates
+        run: |
+          echo "Checking emdash-cms/emdash for marketplace changes..."
+          RESULTS=$(curl -s "https://api.github.com/search/commits?q=marketplace+repo:emdash-cms/emdash&sort=committer-date&order=desc&per_page=5" | jq -r '.items[]?.commit.message // "No results"' 2>/dev/null || echo "No results")
+          echo "Recent marketplace commits:"
+          echo "$RESULTS"
+
+          ISSUES=$(curl -s "https://api.github.com/search/issues?q=marketplace+repo:emdash-cms/emdash+is:open&sort=updated&order=desc&per_page=5" | jq -r '.items[]?.title // "No results"' 2>/dev/null || echo "No results")
+          echo ""
+          echo "Open marketplace issues:"
+          echo "$ISSUES"

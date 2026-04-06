@@ -20,7 +20,7 @@ import { redirectRoutes } from "./routes/redirects.js";
 
 const definition: PluginDefinition = {
   id: "@emdash-seo/toolkit",
-  version: "0.2.0",
+  version: "0.2.1",
 
   capabilities: CAPABILITIES,
   allowedHosts: ["api.twitter.com", "api.x.com", "bsky.social", "*.bsky.social", "api.indexnow.org", "www.googleapis.com"],
