@@ -2,24 +2,24 @@ import React, { useState, useEffect } from "react";
 import { ScoreBadge } from "../components/score-badge.js";
 import { Skeleton, EmptyState } from "../components/shared.js";
 import { colors } from "../tokens.js";
+import { apiFetch } from "../api.js";
 
 interface ScoreItem {
   id: string;
   data: { score: number; collection: string };
 }
 
-export interface SeoScoreWidgetProps {
-  callRoute: (route: string, input?: unknown) => Promise<unknown>;
-}
-
-export function SeoScoreWidget({ callRoute }: SeoScoreWidgetProps) {
+export function SeoScoreWidget() {
   const [scores, setScores] = useState<ScoreItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    callRoute("scores/list", { limit: 100 })
-      .then((d: any) => setScores(d.items ?? []))
+    apiFetch("scores/list", { limit: 100 })
+      .then(async (res) => {
+        const d = await res.json() as any;
+        setScores(d.items ?? []);
+      })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);

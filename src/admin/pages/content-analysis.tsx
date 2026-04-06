@@ -2,15 +2,12 @@ import React, { useState } from "react";
 import { ScoreBadge } from "../components/score-badge.js";
 import { ErrorBanner, EmptyState } from "../components/shared.js";
 import { colors } from "../tokens.js";
+import { apiFetch } from "../api.js";
 import type { SeoCheck } from "../../types.js";
-
-export interface ContentAnalysisPageProps {
-  callRoute: (route: string, input?: unknown) => Promise<unknown>;
-}
 
 const STATUS_ICON: Record<string, string> = { pass: "\u2713", warn: "\u26A0", fail: "\u2717" };
 
-export function ContentAnalysisPage({ callRoute }: ContentAnalysisPageProps) {
+export function ContentAnalysisPage() {
   const [contentId, setContentId] = useState("");
   const [result, setResult] = useState<{ score: number; checks: SeoCheck[]; altSuggestions?: Array<{ src?: string; imageIndex: number; suggestedAlt: string }> } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -29,7 +26,8 @@ export function ContentAnalysisPage({ callRoute }: ContentAnalysisPageProps) {
     setError("");
     try {
       const route = advanced ? "analyze/advanced" : "analyze";
-      const data = await callRoute(route, { contentId: contentId.trim() }) as any;
+      const res = await apiFetch(route, { contentId: contentId.trim() });
+      const data = await res.json() as any;
       if (data.error) {
         setError(data.message || data.error);
         setResult(null);
@@ -37,8 +35,11 @@ export function ContentAnalysisPage({ callRoute }: ContentAnalysisPageProps) {
         setResult(data);
         setLinkSuggestions([]);
         if (advanced) {
-          callRoute("analyze/link-suggestions", { contentId: contentId.trim() })
-            .then((d: any) => setLinkSuggestions(d.suggestions ?? []))
+          apiFetch("analyze/link-suggestions", { contentId: contentId.trim() })
+            .then(async (r) => {
+              const d = await r.json() as any;
+              setLinkSuggestions(d.suggestions ?? []);
+            })
             .catch(() => setLinkSuggestions([]));
         }
       }
@@ -53,7 +54,8 @@ export function ContentAnalysisPage({ callRoute }: ContentAnalysisPageProps) {
     setError("");
     setOrphanedLoading(true);
     try {
-      const data = await callRoute("analyze/orphaned") as any;
+      const res = await apiFetch("analyze/orphaned");
+      const data = await res.json() as any;
       if (data.error) {
         setError(data.message ?? data.error);
       } else {
@@ -71,7 +73,8 @@ export function ContentAnalysisPage({ callRoute }: ContentAnalysisPageProps) {
     setError("");
     setBrokenLoading(true);
     try {
-      const data = await callRoute("analyze/broken-links", { contentId: contentId.trim() }) as any;
+      const res = await apiFetch("analyze/broken-links", { contentId: contentId.trim() });
+      const data = await res.json() as any;
       if (data.error) {
         setError(data.message ?? data.error);
       } else {
@@ -88,7 +91,8 @@ export function ContentAnalysisPage({ callRoute }: ContentAnalysisPageProps) {
     setError("");
     setSearchStatsLoading(true);
     try {
-      const data = await callRoute("analyze/search-stats") as any;
+      const res = await apiFetch("analyze/search-stats");
+      const data = await res.json() as any;
       if (data.error) {
         setError(data.message ?? data.error);
       } else {

@@ -2,9 +2,10 @@ import React, { useState, useEffect, useCallback } from "react";
 import { CharacterCounter } from "../components/character-counter.js";
 import { SerpPreview } from "../components/serp-preview.js";
 import { colors, fontSize } from "../tokens.js";
+import { apiFetch } from "../api.js";
 
+// Field widgets receive contentId, collection, siteUrl from the Emdash admin shell
 export interface SeoFieldsWidgetProps {
-  callRoute: (route: string, input?: unknown) => Promise<unknown>;
   contentId: string;
   collection: string;
   siteUrl: string;
@@ -16,20 +17,21 @@ interface FieldData {
   focusKeyword: string;
 }
 
-export function SeoFieldsWidget({ callRoute, contentId, collection, siteUrl }: SeoFieldsWidgetProps) {
+export function SeoFieldsWidget({ contentId, collection, siteUrl }: SeoFieldsWidgetProps) {
   const [fields, setFields] = useState<FieldData>({ title: "", description: "", focusKeyword: "" });
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
-    callRoute("overrides/get", { contentId })
-      .then((res: any) => {
-        if (res?.overrides) {
+    apiFetch("overrides/get", { contentId })
+      .then(async (res) => {
+        const data = await res.json() as any;
+        if (data?.overrides) {
           setFields({
-            title: res.overrides.title ?? "",
-            description: res.overrides.description ?? "",
-            focusKeyword: res.overrides.focusKeyword ?? "",
+            title: data.overrides.title ?? "",
+            description: data.overrides.description ?? "",
+            focusKeyword: data.overrides.focusKeyword ?? "",
           });
         }
         setLoaded(true);
@@ -48,7 +50,7 @@ export function SeoFieldsWidget({ callRoute, contentId, collection, siteUrl }: S
     setSaving(true);
     setMessage(null);
     try {
-      await callRoute("overrides/save", {
+      await apiFetch("overrides/save", {
         contentId,
         collection,
         title: fields.title || undefined,
@@ -61,7 +63,7 @@ export function SeoFieldsWidget({ callRoute, contentId, collection, siteUrl }: S
     } finally {
       setSaving(false);
     }
-  }, [callRoute, contentId, collection, fields]);
+  }, [contentId, collection, fields]);
 
   if (!loaded) {
     return <div style={{ padding: 16, color: colors.textTertiary, fontSize: fontSize.sm }}>Loading SEO fields...</div>;

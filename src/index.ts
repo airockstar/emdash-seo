@@ -18,12 +18,15 @@ import { socialRoutes } from "./routes/social.js";
 import { licenseRoutes } from "./routes/license.js";
 import { redirectRoutes } from "./routes/redirects.js";
 
+const ID = "@emdash-seo/toolkit";
+const VERSION = "0.3.0";
+
 // ─── Plugin Descriptor (for astro.config.mjs) ───────────────────
 
-export default function seoToolkit() {
+export function seoToolkit() {
   return {
-    id: "@emdash-seo/toolkit",
-    version: "0.2.2",
+    id: ID,
+    version: VERSION,
     entrypoint: "@ai-rockstar/emdash-seo",
     adminEntry: "@ai-rockstar/emdash-seo/admin",
     options: {},
@@ -31,9 +34,9 @@ export default function seoToolkit() {
     allowedHosts: ["api.twitter.com", "api.x.com", "bsky.social", "*.bsky.social", "api.indexnow.org", "www.googleapis.com"],
     storage: STORAGE,
     adminPages: [
-      { path: "seo-overrides", label: "SEO Overrides", icon: "search" },
-      { path: "content-analysis", label: "Content Analysis", icon: "chart" },
-      { path: "redirects", label: "Redirects", icon: "link" },
+      { path: "/", label: "SEO Overrides", icon: "search" },
+      { path: "/analysis", label: "Content Analysis", icon: "chart" },
+      { path: "/redirects", label: "Redirects", icon: "link" },
     ],
     adminWidgets: [
       { id: "seo-status", title: "SEO Status", size: "half" as const },
@@ -46,8 +49,8 @@ export default function seoToolkit() {
 // ─── Plugin Implementation (loaded by Emdash runtime) ────────────
 
 const definition: PluginDefinition = {
-  id: "@emdash-seo/toolkit",
-  version: "0.2.2",
+  id: ID,
+  version: VERSION,
 
   capabilities: CAPABILITIES,
   allowedHosts: ["api.twitter.com", "api.x.com", "bsky.social", "*.bsky.social", "api.indexnow.org", "www.googleapis.com"],
@@ -93,9 +96,9 @@ const definition: PluginDefinition = {
       },
     ],
     pages: [
-      { path: "seo-overrides", label: "SEO Overrides", icon: "search" },
-      { path: "content-analysis", label: "Content Analysis", icon: "chart" },
-      { path: "redirects", label: "Redirects", icon: "link" },
+      { path: "/", label: "SEO Overrides", icon: "search" },
+      { path: "/analysis", label: "Content Analysis", icon: "chart" },
+      { path: "/redirects", label: "Redirects", icon: "link" },
     ],
     widgets: [
       { id: "seo-status", title: "SEO Status", size: "half" },
@@ -107,3 +110,6 @@ const definition: PluginDefinition = {
 export function createPlugin() {
   return definePlugin(definition);
 }
+
+// Default export = descriptor for convenience
+export default seoToolkit;

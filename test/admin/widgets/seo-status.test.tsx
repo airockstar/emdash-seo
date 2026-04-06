@@ -1,8 +1,14 @@
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { SeoStatusWidget } from "../../../src/admin/widgets/seo-status.js";
+import { apiFetch } from "../../../src/admin/api.js";
 
+vi.mock("../../../src/admin/api.js", () => ({
+  apiFetch: vi.fn(),
+}));
+
+const mockApiFetch = apiFetch as ReturnType<typeof vi.fn>;
 
 const STATUS_DATA = {
   total: 42,
@@ -13,12 +19,12 @@ const STATUS_DATA = {
   withoutOverrides: 32,
 };
 
-function createCallRoute(data = STATUS_DATA) {
-  return vi.fn().mockResolvedValue(data);
+function mockSuccessResponse(data = STATUS_DATA) {
+  mockApiFetch.mockResolvedValue(new Response(JSON.stringify(data)));
 }
 
-function createFailingCallRoute() {
-  return vi.fn().mockRejectedValue(new Error("Network error"));
+function mockFailingResponse() {
+  mockApiFetch.mockRejectedValue(new Error("Network error"));
 }
 
 function getBadgeForLabel(container: HTMLElement, label: string): Element {
@@ -33,17 +39,21 @@ function getBadgeForLabel(container: HTMLElement, label: string): Element {
 }
 
 describe("SeoStatusWidget", () => {
+  beforeEach(() => {
+    mockApiFetch.mockReset();
+  });
+
   it("shows skeleton loading state before data arrives", () => {
-    const callRoute = vi.fn().mockReturnValue(new Promise(() => {}));
-    const { container } = render(<SeoStatusWidget callRoute={callRoute} />);
+    mockApiFetch.mockReturnValue(new Promise(() => {}));
+    const { container } = render(<SeoStatusWidget />);
 
     const skeletons = container.querySelectorAll(".seo-skeleton");
     expect(skeletons.length).toBe(4);
   });
 
   it("shows error message when API fails", async () => {
-    const callRoute = createFailingCallRoute();
-    render(<SeoStatusWidget callRoute={callRoute} />);
+    mockFailingResponse();
+    render(<SeoStatusWidget />);
 
     await waitFor(() => {
       expect(screen.getByText("Failed to load status.")).toBeDefined();
@@ -51,8 +61,8 @@ describe("SeoStatusWidget", () => {
   });
 
   it("renders total content count", async () => {
-    const callRoute = createCallRoute();
-    render(<SeoStatusWidget callRoute={callRoute} />);
+    mockSuccessResponse();
+    render(<SeoStatusWidget />);
 
     await waitFor(() => {
       expect(screen.getByText("42 content items total")).toBeDefined();
@@ -60,8 +70,8 @@ describe("SeoStatusWidget", () => {
   });
 
   it("shows Missing title count", async () => {
-    const callRoute = createCallRoute();
-    const { container } = render(<SeoStatusWidget callRoute={callRoute} />);
+    mockSuccessResponse();
+    const { container } = render(<SeoStatusWidget />);
 
     await waitFor(() => {
       expect(screen.getByText("42 content items total")).toBeDefined();
@@ -72,8 +82,8 @@ describe("SeoStatusWidget", () => {
   });
 
   it("shows Missing description count", async () => {
-    const callRoute = createCallRoute();
-    const { container } = render(<SeoStatusWidget callRoute={callRoute} />);
+    mockSuccessResponse();
+    const { container } = render(<SeoStatusWidget />);
 
     await waitFor(() => {
       expect(screen.getByText("42 content items total")).toBeDefined();
@@ -84,8 +94,8 @@ describe("SeoStatusWidget", () => {
   });
 
   it("shows Missing OG image count", async () => {
-    const callRoute = createCallRoute();
-    const { container } = render(<SeoStatusWidget callRoute={callRoute} />);
+    mockSuccessResponse();
+    const { container } = render(<SeoStatusWidget />);
 
     await waitFor(() => {
       expect(screen.getByText("42 content items total")).toBeDefined();
@@ -96,8 +106,8 @@ describe("SeoStatusWidget", () => {
   });
 
   it("shows With SEO overrides count", async () => {
-    const callRoute = createCallRoute();
-    const { container } = render(<SeoStatusWidget callRoute={callRoute} />);
+    mockSuccessResponse();
+    const { container } = render(<SeoStatusWidget />);
 
     await waitFor(() => {
       expect(screen.getByText("42 content items total")).toBeDefined();
@@ -108,8 +118,8 @@ describe("SeoStatusWidget", () => {
   });
 
   it("uses error badge class when count > 0 for missing fields", async () => {
-    const callRoute = createCallRoute();
-    const { container } = render(<SeoStatusWidget callRoute={callRoute} />);
+    mockSuccessResponse();
+    const { container } = render(<SeoStatusWidget />);
 
     await waitFor(() => {
       expect(screen.getByText("42 content items total")).toBeDefined();
@@ -127,13 +137,13 @@ describe("SeoStatusWidget", () => {
   });
 
   it("uses success badge class when count is 0", async () => {
-    const callRoute = createCallRoute({
+    mockSuccessResponse({
       ...STATUS_DATA,
       missingTitle: 0,
       missingDescription: 0,
       missingOgImage: 0,
     });
-    const { container } = render(<SeoStatusWidget callRoute={callRoute} />);
+    const { container } = render(<SeoStatusWidget />);
 
     await waitFor(() => {
       expect(screen.getByText("42 content items total")).toBeDefined();
@@ -151,8 +161,8 @@ describe("SeoStatusWidget", () => {
   });
 
   it("With SEO overrides always uses success badge class", async () => {
-    const callRoute = createCallRoute();
-    const { container } = render(<SeoStatusWidget callRoute={callRoute} />);
+    mockSuccessResponse();
+    const { container } = render(<SeoStatusWidget />);
 
     await waitFor(() => {
       expect(screen.getByText("42 content items total")).toBeDefined();
@@ -163,11 +173,11 @@ describe("SeoStatusWidget", () => {
     expect(badge.classList.contains("seo-badge-error")).toBe(false);
   });
 
-  it("calls callRoute('analytics/status') on mount", () => {
-    const callRoute = createCallRoute();
-    render(<SeoStatusWidget callRoute={callRoute} />);
+  it("calls apiFetch('analytics/status') on mount", () => {
+    mockSuccessResponse();
+    render(<SeoStatusWidget />);
 
-    expect(callRoute).toHaveBeenCalledTimes(1);
-    expect(callRoute).toHaveBeenCalledWith("analytics/status");
+    expect(mockApiFetch).toHaveBeenCalledTimes(1);
+    expect(mockApiFetch).toHaveBeenCalledWith("analytics/status");
   });
 });

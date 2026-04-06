@@ -1,48 +1,59 @@
 import React from "react";
 import { render } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { pages, widgets, fields } from "../../src/admin/index.js";
-import { globalStyles } from "../../src/admin/styles.js";
+
+// Mock apiFetch so components don't actually call the API
+vi.mock("../../src/admin/api.js", () => ({
+  apiFetch: vi.fn(() => Promise.resolve(new Response(JSON.stringify({ items: [] })))),
+}));
 
 // Mock the page/widget components so we don't pull in their full trees
 vi.mock("../../src/admin/pages/seo-overrides.js", () => ({
-  SeoOverridesPage: (_props: Record<string, unknown>) => (
+  SeoOverridesPage: () => (
     <div data-testid="seo-overrides">SeoOverridesPage</div>
   ),
 }));
 vi.mock("../../src/admin/pages/content-analysis.js", () => ({
-  ContentAnalysisPage: (_props: Record<string, unknown>) => (
+  ContentAnalysisPage: () => (
     <div data-testid="content-analysis">ContentAnalysisPage</div>
   ),
 }));
+vi.mock("../../src/admin/pages/redirects.js", () => ({
+  RedirectsPage: () => (
+    <div data-testid="redirects">RedirectsPage</div>
+  ),
+}));
 vi.mock("../../src/admin/widgets/seo-status.js", () => ({
-  SeoStatusWidget: (_props: Record<string, unknown>) => (
+  SeoStatusWidget: () => (
     <div data-testid="seo-status">SeoStatusWidget</div>
   ),
 }));
 vi.mock("../../src/admin/widgets/seo-score.js", () => ({
-  SeoScoreWidget: (_props: Record<string, unknown>) => (
+  SeoScoreWidget: () => (
     <div data-testid="seo-score">SeoScoreWidget</div>
   ),
 }));
 vi.mock("../../src/admin/widgets/seo-fields.js", () => ({
-  SeoFieldsWidget: (_props: Record<string, unknown>) => (
+  SeoFieldsWidget: () => (
     <div data-testid="seo-fields">SeoFieldsWidget</div>
   ),
 }));
 
-const mockCallRoute = vi.fn(() => Promise.resolve({ ok: true }));
-const defaultProps = { callRoute: mockCallRoute as any, siteUrl: "https://example.com" };
-
 describe("admin entry point — pages export", () => {
-  it("contains 'seo-overrides' key", () => {
-    expect(pages).toHaveProperty("seo-overrides");
-    expect(typeof pages["seo-overrides"]).toBe("function");
+  it("contains '/' key for SEO Overrides", () => {
+    expect(pages).toHaveProperty("/");
+    expect(typeof pages["/"]).toBe("function");
   });
 
-  it("contains 'content-analysis' key", () => {
-    expect(pages).toHaveProperty("content-analysis");
-    expect(typeof pages["content-analysis"]).toBe("function");
+  it("contains '/analysis' key", () => {
+    expect(pages).toHaveProperty("/analysis");
+    expect(typeof pages["/analysis"]).toBe("function");
+  });
+
+  it("contains '/redirects' key", () => {
+    expect(pages).toHaveProperty("/redirects");
+    expect(typeof pages["/redirects"]).toBe("function");
   });
 });
 
@@ -65,101 +76,36 @@ describe("admin entry point — fields export", () => {
   });
 });
 
-describe("withStyles — style injection", () => {
-  beforeEach(() => {
-    // Remove any previously injected style elements
-    document.head.querySelectorAll("style[data-seo-plugin]").forEach((el) => el.remove());
-    // Reset the module-level styleRef by re-importing fresh module
-    vi.resetModules();
-  });
-
-  async function loadFreshModule() {
-    const mod = await import("../../src/admin/index.js");
-    return mod;
-  }
-
-  it("injects a <style> element into document.head", async () => {
-    const { pages: freshPages } = await loadFreshModule();
-    const Page = freshPages["seo-overrides"];
-    render(<Page {...defaultProps} />);
-
-    const styleEl = document.head.querySelector("style[data-seo-plugin]");
-    expect(styleEl).not.toBeNull();
-  });
-
-  it("style element has data-seo-plugin attribute", async () => {
-    const { pages: freshPages } = await loadFreshModule();
-    const Page = freshPages["seo-overrides"];
-    render(<Page {...defaultProps} />);
-
-    const styleEl = document.head.querySelector("style[data-seo-plugin]");
-    expect(styleEl).not.toBeNull();
-    expect(styleEl!.hasAttribute("data-seo-plugin")).toBe(true);
-  });
-
-  it("injects the style only once even with multiple wrapped components", async () => {
-    const { pages: freshPages, widgets: freshWidgets } = await loadFreshModule();
-    const PageA = freshPages["seo-overrides"];
-    const PageB = freshPages["content-analysis"];
-    const WidgetA = freshWidgets["seo-status"];
-
-    render(
-      <div>
-        <PageA {...defaultProps} />
-        <PageB {...defaultProps} />
-        <WidgetA {...defaultProps} />
-      </div>,
-    );
-
-    const styles = document.head.querySelectorAll("style[data-seo-plugin]");
-    expect(styles.length).toBe(1);
-  });
-
-  it("wrapped components still render their content", async () => {
-    const { pages: freshPages, widgets: freshWidgets } = await loadFreshModule();
-    const Page = freshPages["seo-overrides"];
-    const Widget = freshWidgets["seo-score"];
-
-    const { container } = render(
-      <div>
-        <Page {...defaultProps} />
-        <Widget {...defaultProps} />
-      </div>,
-    );
-
+describe("page components render", () => {
+  it("renders SEO Overrides page", () => {
+    const Page = pages["/"];
+    const { container } = render(<Page />);
     expect(container.querySelector("[data-testid='seo-overrides']")).not.toBeNull();
-    expect(container.textContent).toContain("SeoOverridesPage");
-    expect(container.querySelector("[data-testid='seo-score']")).not.toBeNull();
-    expect(container.textContent).toContain("SeoScoreWidget");
+  });
+
+  it("renders Content Analysis page", () => {
+    const Page = pages["/analysis"];
+    const { container } = render(<Page />);
+    expect(container.querySelector("[data-testid='content-analysis']")).not.toBeNull();
+  });
+
+  it("renders Redirects page", () => {
+    const Page = pages["/redirects"];
+    const { container } = render(<Page />);
+    expect(container.querySelector("[data-testid='redirects']")).not.toBeNull();
   });
 });
 
-describe("globalStyles", () => {
-  it("contains .seo-input class", () => {
-    expect(globalStyles).toContain(".seo-input");
+describe("widget components render", () => {
+  it("renders SEO Status widget", () => {
+    const Widget = widgets["seo-status"];
+    const { container } = render(<Widget />);
+    expect(container.querySelector("[data-testid='seo-status']")).not.toBeNull();
   });
 
-  it("contains .seo-btn class", () => {
-    expect(globalStyles).toContain(".seo-btn");
-  });
-
-  it("contains .seo-table class", () => {
-    expect(globalStyles).toContain(".seo-table");
-  });
-
-  it("contains .seo-card class", () => {
-    expect(globalStyles).toContain(".seo-card");
-  });
-
-  it("contains .seo-empty class", () => {
-    expect(globalStyles).toContain(".seo-empty");
-  });
-
-  it("contains .seo-badge class", () => {
-    expect(globalStyles).toContain(".seo-badge");
-  });
-
-  it("uses the accent color token #6366f1", () => {
-    expect(globalStyles).toContain("#6366f1");
+  it("renders SEO Score widget", () => {
+    const Widget = widgets["seo-score"];
+    const { container } = render(<Widget />);
+    expect(container.querySelector("[data-testid='seo-score']")).not.toBeNull();
   });
 });

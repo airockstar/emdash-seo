@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Skeleton } from "../components/shared.js";
 import { colors } from "../tokens.js";
+import { apiFetch } from "../api.js";
 
 interface StatusData {
   total: number;
@@ -11,17 +12,16 @@ interface StatusData {
   withoutOverrides: number;
 }
 
-export interface SeoStatusWidgetProps {
-  callRoute: (route: string) => Promise<unknown>;
-}
-
-export function SeoStatusWidget({ callRoute }: SeoStatusWidgetProps) {
+export function SeoStatusWidget() {
   const [data, setData] = useState<StatusData | null>(null);
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    callRoute("analytics/status")
-      .then((d) => setData(d as StatusData))
+    apiFetch("analytics/status")
+      .then(async (res) => {
+        const d = await res.json();
+        setData(d as StatusData);
+      })
       .catch(() => setError(true));
   }, []);
 

@@ -2,6 +2,13 @@ import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { SeoOverridesPage } from "../../../src/admin/pages/seo-overrides.js";
+import { apiFetch } from "../../../src/admin/api.js";
+
+vi.mock("../../../src/admin/api.js", () => ({
+  apiFetch: vi.fn(),
+}));
+
+const mockApiFetch = apiFetch as ReturnType<typeof vi.fn>;
 
 const MOCK_OVERRIDES = [
   {
@@ -30,28 +37,30 @@ const MOCK_OVERRIDES = [
   },
 ];
 
-function createMockCallRoute(items = MOCK_OVERRIDES) {
-  return vi.fn().mockResolvedValue({ items });
+function mockListResponse(items = MOCK_OVERRIDES) {
+  mockApiFetch.mockResolvedValue(new Response(JSON.stringify({ items })));
+}
+
+function mockPendingResponse() {
+  mockApiFetch.mockReturnValue(new Promise(() => {}));
 }
 
 describe("SeoOverridesPage", () => {
-  let callRoute: ReturnType<typeof vi.fn>;
-
   beforeEach(() => {
-    callRoute = createMockCallRoute();
+    mockApiFetch.mockReset();
+    mockListResponse();
   });
-
 
   // 1. Shows loading state initially
   it("shows loading state initially", () => {
-    const pendingCallRoute = vi.fn().mockReturnValue(new Promise(() => {}));
-    render(<SeoOverridesPage callRoute={pendingCallRoute} siteUrl="https://example.com" />);
+    mockPendingResponse();
+    render(<SeoOverridesPage />);
     expect(screen.getByText("Loading overrides...")).toBeDefined();
   });
 
   // 2. Renders table with overrides after loading
   it("renders table with overrides after loading", async () => {
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    render(<SeoOverridesPage />);
     await waitFor(() => {
       expect(screen.getByText("post-1")).toBeDefined();
     });
@@ -64,8 +73,8 @@ describe("SeoOverridesPage", () => {
 
   // 3. Shows empty state when no overrides
   it("shows empty state when no overrides", async () => {
-    callRoute = createMockCallRoute([]);
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    mockListResponse([]);
+    render(<SeoOverridesPage />);
     await waitFor(() => {
       expect(screen.getByText("No overrides yet")).toBeDefined();
     });
@@ -74,15 +83,15 @@ describe("SeoOverridesPage", () => {
 
   // 4. Shows item count in header
   it("shows item count in header", async () => {
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    render(<SeoOverridesPage />);
     await waitFor(() => {
       expect(screen.getByText("2 items")).toBeDefined();
     });
   });
 
   it("shows 0 items when empty", async () => {
-    callRoute = createMockCallRoute([]);
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    mockListResponse([]);
+    render(<SeoOverridesPage />);
     await waitFor(() => {
       expect(screen.getByText("0 items")).toBeDefined();
     });
@@ -90,8 +99,8 @@ describe("SeoOverridesPage", () => {
 
   // 5. Filter input exists with placeholder
   it("has filter input with correct placeholder", () => {
-    const pendingCallRoute = vi.fn().mockReturnValue(new Promise(() => {}));
-    render(<SeoOverridesPage callRoute={pendingCallRoute} siteUrl="https://example.com" />);
+    mockPendingResponse();
+    render(<SeoOverridesPage />);
     const input = screen.getByPlaceholderText("Filter by collection...");
     expect(input).toBeDefined();
     expect(input.getAttribute("type")).toBe("text");
@@ -99,7 +108,7 @@ describe("SeoOverridesPage", () => {
 
   // 6. Clicking Edit opens edit panel
   it("clicking Edit opens edit panel", async () => {
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    render(<SeoOverridesPage />);
     await waitFor(() => {
       expect(screen.getByText("post-1")).toBeDefined();
     });
@@ -109,7 +118,7 @@ describe("SeoOverridesPage", () => {
 
   // 7. Edit panel shows SERP preview
   it("edit panel shows SERP preview", async () => {
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    render(<SeoOverridesPage />);
     await waitFor(() => {
       expect(screen.getByText("post-1")).toBeDefined();
     });
@@ -120,7 +129,7 @@ describe("SeoOverridesPage", () => {
 
   // 8. Edit panel has character counters on title/description
   it("edit panel has character counters on title and description", async () => {
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    render(<SeoOverridesPage />);
     await waitFor(() => {
       expect(screen.getByText("post-1")).toBeDefined();
     });
@@ -139,7 +148,7 @@ describe("SeoOverridesPage", () => {
 
   // 9. Edit panel has all form fields (title, desc, keyword, robots, canonical)
   it("edit panel has all form fields", async () => {
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    render(<SeoOverridesPage />);
     await waitFor(() => {
       expect(screen.getByText("post-1")).toBeDefined();
     });
@@ -153,7 +162,7 @@ describe("SeoOverridesPage", () => {
   });
 
   it("edit panel pre-fills form fields from override data", async () => {
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    render(<SeoOverridesPage />);
     await waitFor(() => {
       expect(screen.getByText("post-1")).toBeDefined();
     });
@@ -168,9 +177,9 @@ describe("SeoOverridesPage", () => {
     expect((screen.getByLabelText("Canonical URL") as HTMLInputElement).value).toBe("https://example.com/blog/post-1");
   });
 
-  // 10. Save button calls callRoute with correct data
-  it("save button calls callRoute with correct data", async () => {
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+  // 10. Save button calls apiFetch with correct data
+  it("save button calls apiFetch with correct data", async () => {
+    render(<SeoOverridesPage />);
     await waitFor(() => {
       expect(screen.getByText("post-1")).toBeDefined();
     });
@@ -182,7 +191,7 @@ describe("SeoOverridesPage", () => {
     fireEvent.click(screen.getByText("Save Changes"));
 
     await waitFor(() => {
-      expect(callRoute).toHaveBeenCalledWith("overrides/save", {
+      expect(mockApiFetch).toHaveBeenCalledWith("overrides/save", {
         contentId: "post-1",
         collection: "blog",
         title: "Updated Title",
@@ -199,7 +208,7 @@ describe("SeoOverridesPage", () => {
   // 11. Delete button shows confirm dialog
   it("delete button shows confirm dialog", async () => {
     const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    render(<SeoOverridesPage />);
     await waitFor(() => {
       expect(screen.getByText("post-1")).toBeDefined();
     });
@@ -207,31 +216,31 @@ describe("SeoOverridesPage", () => {
     expect(confirmSpy).toHaveBeenCalledWith('Delete SEO overrides for "post-1"?');
   });
 
-  it("delete calls callRoute when confirmed", async () => {
+  it("delete calls apiFetch when confirmed", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    render(<SeoOverridesPage />);
     await waitFor(() => {
       expect(screen.getByText("post-1")).toBeDefined();
     });
     fireEvent.click(screen.getByLabelText("Delete post-1"));
     await waitFor(() => {
-      expect(callRoute).toHaveBeenCalledWith("overrides/delete", { contentId: "post-1" });
+      expect(mockApiFetch).toHaveBeenCalledWith("overrides/delete", { contentId: "post-1" });
     });
   });
 
-  it("delete does not call callRoute when cancelled", async () => {
+  it("delete does not call apiFetch when cancelled", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(false);
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    render(<SeoOverridesPage />);
     await waitFor(() => {
       expect(screen.getByText("post-1")).toBeDefined();
     });
     fireEvent.click(screen.getByLabelText("Delete post-1"));
-    expect(callRoute).not.toHaveBeenCalledWith("overrides/delete", expect.anything());
+    expect(mockApiFetch).not.toHaveBeenCalledWith("overrides/delete", expect.anything());
   });
 
   // 12. Cancel button closes edit panel
   it("cancel button closes edit panel", async () => {
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    render(<SeoOverridesPage />);
     await waitFor(() => {
       expect(screen.getByText("post-1")).toBeDefined();
     });
@@ -243,7 +252,7 @@ describe("SeoOverridesPage", () => {
   });
 
   it("close button in edit panel header closes edit panel", async () => {
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    render(<SeoOverridesPage />);
     await waitFor(() => {
       expect(screen.getByText("post-1")).toBeDefined();
     });
@@ -256,7 +265,7 @@ describe("SeoOverridesPage", () => {
 
   // 13. Filter triggers reload on Enter key
   it("filter triggers reload on Enter key", async () => {
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    render(<SeoOverridesPage />);
     await waitFor(() => {
       expect(screen.getByText("post-1")).toBeDefined();
     });
@@ -266,12 +275,12 @@ describe("SeoOverridesPage", () => {
     fireEvent.keyDown(filterInput, { key: "Enter" });
 
     await waitFor(() => {
-      expect(callRoute).toHaveBeenCalledWith("overrides/list", { collection: "blog" });
+      expect(mockApiFetch).toHaveBeenCalledWith("overrides/list", { collection: "blog" });
     });
   });
 
   it("filter triggers reload on blur when value changed", async () => {
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    render(<SeoOverridesPage />);
     await waitFor(() => {
       expect(screen.getByText("post-1")).toBeDefined();
     });
@@ -281,13 +290,13 @@ describe("SeoOverridesPage", () => {
     fireEvent.blur(filterInput);
 
     await waitFor(() => {
-      expect(callRoute).toHaveBeenCalledWith("overrides/list", { collection: "pages" });
+      expect(mockApiFetch).toHaveBeenCalledWith("overrides/list", { collection: "pages" });
     });
   });
 
   // 14. Labels are properly associated with inputs (htmlFor/id)
   it("labels are properly associated with inputs via htmlFor/id", async () => {
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    render(<SeoOverridesPage />);
     await waitFor(() => {
       expect(screen.getByText("post-1")).toBeDefined();
     });
@@ -321,7 +330,7 @@ describe("SeoOverridesPage", () => {
 
   // 15. Table has proper column headers
   it("table has proper column headers", async () => {
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    render(<SeoOverridesPage />);
     await waitFor(() => {
       expect(screen.getByText("post-1")).toBeDefined();
     });
@@ -335,13 +344,13 @@ describe("SeoOverridesPage", () => {
   });
 
   it("page heading is rendered", () => {
-    const pendingCallRoute = vi.fn().mockReturnValue(new Promise(() => {}));
-    render(<SeoOverridesPage callRoute={pendingCallRoute} siteUrl="https://example.com" />);
+    mockPendingResponse();
+    render(<SeoOverridesPage />);
     expect(screen.getByText("SEO Overrides")).toBeDefined();
   });
 
   it("save closes edit panel after success", async () => {
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    render(<SeoOverridesPage />);
     await waitFor(() => {
       expect(screen.getByText("post-1")).toBeDefined();
     });
@@ -355,21 +364,21 @@ describe("SeoOverridesPage", () => {
   });
 
   it("calls overrides/list on initial mount", async () => {
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    render(<SeoOverridesPage />);
     await waitFor(() => {
-      expect(callRoute).toHaveBeenCalledWith("overrides/list", { collection: undefined });
+      expect(mockApiFetch).toHaveBeenCalledWith("overrides/list", { collection: undefined });
     });
   });
 
   it("filter input has correct aria-label", () => {
-    const pendingCallRoute = vi.fn().mockReturnValue(new Promise(() => {}));
-    render(<SeoOverridesPage callRoute={pendingCallRoute} siteUrl="https://example.com" />);
+    mockPendingResponse();
+    render(<SeoOverridesPage />);
     expect(screen.getByLabelText("Filter overrides by collection")).toBeDefined();
   });
 
   // OG Image field
   it("edit panel has OG Image field with label and input", async () => {
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    render(<SeoOverridesPage />);
     await waitFor(() => {
       expect(screen.getByText("post-1")).toBeDefined();
     });
@@ -382,7 +391,7 @@ describe("SeoOverridesPage", () => {
 
   // Schema Type select
   it("edit panel has Schema Type select with all options", async () => {
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    render(<SeoOverridesPage />);
     await waitFor(() => {
       expect(screen.getByText("post-1")).toBeDefined();
     });
@@ -401,7 +410,7 @@ describe("SeoOverridesPage", () => {
 
   // Social Preview renders
   it("edit panel shows Social Preview", async () => {
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    render(<SeoOverridesPage />);
     await waitFor(() => {
       expect(screen.getByText("post-1")).toBeDefined();
     });
@@ -412,7 +421,7 @@ describe("SeoOverridesPage", () => {
 
   // OG Image included in save payload
   it("OG Image is included in save payload", async () => {
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    render(<SeoOverridesPage />);
     await waitFor(() => {
       expect(screen.getByText("post-1")).toBeDefined();
     });
@@ -423,7 +432,7 @@ describe("SeoOverridesPage", () => {
     fireEvent.click(screen.getByText("Save Changes"));
 
     await waitFor(() => {
-      expect(callRoute).toHaveBeenCalledWith("overrides/save", expect.objectContaining({
+      expect(mockApiFetch).toHaveBeenCalledWith("overrides/save", expect.objectContaining({
         ogImage: "https://example.com/image.png",
       }));
     });
@@ -431,7 +440,7 @@ describe("SeoOverridesPage", () => {
 
   // Breadcrumb Label field
   it("edit panel has Breadcrumb Label field", async () => {
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    render(<SeoOverridesPage />);
     await waitFor(() => {
       expect(screen.getByText("post-1")).toBeDefined();
     });
@@ -444,7 +453,7 @@ describe("SeoOverridesPage", () => {
 
   // CSV Export button exists
   it("has CSV Export button", async () => {
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    render(<SeoOverridesPage />);
     await waitFor(() => {
       expect(screen.getByText("post-1")).toBeDefined();
     });
@@ -453,7 +462,7 @@ describe("SeoOverridesPage", () => {
 
   // CSV Import button exists
   it("has CSV Import (Pro) button", async () => {
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    render(<SeoOverridesPage />);
     await waitFor(() => {
       expect(screen.getByText("post-1")).toBeDefined();
     });
@@ -468,23 +477,23 @@ describe("SeoOverridesPage", () => {
     Object.defineProperty(URL, "createObjectURL", { value: createObjectURL, writable: true });
     Object.defineProperty(URL, "revokeObjectURL", { value: revokeObjectURL, writable: true });
 
-    callRoute = vi.fn().mockImplementation((route: string) => {
-      if (route === "overrides/export") return Promise.resolve({ csv: "contentId,title\np-1,Test" });
-      return Promise.resolve({ items: MOCK_OVERRIDES });
+    mockApiFetch.mockImplementation((route: string) => {
+      if (route === "overrides/export") return Promise.resolve(new Response(JSON.stringify({ csv: "contentId,title\np-1,Test" })));
+      return Promise.resolve(new Response(JSON.stringify({ items: MOCK_OVERRIDES })));
     });
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    render(<SeoOverridesPage />);
     await waitFor(() => {
       expect(screen.getByText("post-1")).toBeDefined();
     });
     fireEvent.click(screen.getByText("CSV Export"));
     await waitFor(() => {
-      expect(callRoute).toHaveBeenCalledWith("overrides/export");
+      expect(mockApiFetch).toHaveBeenCalledWith("overrides/export");
     });
   });
 
   // Schema Type included in save payload
   it("Schema Type is included in save payload", async () => {
-    render(<SeoOverridesPage callRoute={callRoute} siteUrl="https://example.com" />);
+    render(<SeoOverridesPage />);
     await waitFor(() => {
       expect(screen.getByText("post-1")).toBeDefined();
     });
@@ -495,7 +504,7 @@ describe("SeoOverridesPage", () => {
     fireEvent.click(screen.getByText("Save Changes"));
 
     await waitFor(() => {
-      expect(callRoute).toHaveBeenCalledWith("overrides/save", expect.objectContaining({
+      expect(mockApiFetch).toHaveBeenCalledWith("overrides/save", expect.objectContaining({
         schemaType: "faq",
       }));
     });

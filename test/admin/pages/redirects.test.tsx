@@ -2,6 +2,13 @@ import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { RedirectsPage } from "../../../src/admin/pages/redirects.js";
+import { apiFetch } from "../../../src/admin/api.js";
+
+vi.mock("../../../src/admin/api.js", () => ({
+  apiFetch: vi.fn(),
+}));
+
+const mockApiFetch = apiFetch as ReturnType<typeof vi.fn>;
 
 const MOCK_REDIRECTS = [
   {
@@ -14,25 +21,28 @@ const MOCK_REDIRECTS = [
   },
 ];
 
-function createMockCallRoute(items = MOCK_REDIRECTS) {
-  return vi.fn().mockResolvedValue({ items });
+function mockListResponse(items = MOCK_REDIRECTS) {
+  mockApiFetch.mockResolvedValue(new Response(JSON.stringify({ items })));
+}
+
+function mockPendingResponse() {
+  mockApiFetch.mockReturnValue(new Promise(() => {}));
 }
 
 describe("RedirectsPage", () => {
-  let callRoute: ReturnType<typeof vi.fn>;
-
   beforeEach(() => {
-    callRoute = createMockCallRoute();
+    mockApiFetch.mockReset();
+    mockListResponse();
   });
 
   it("shows loading state initially", () => {
-    const pendingCallRoute = vi.fn().mockReturnValue(new Promise(() => {}));
-    render(<RedirectsPage callRoute={pendingCallRoute} />);
+    mockPendingResponse();
+    render(<RedirectsPage />);
     expect(screen.getByText("Loading redirects...")).toBeDefined();
   });
 
   it("renders table with redirects after loading", async () => {
-    render(<RedirectsPage callRoute={callRoute} />);
+    render(<RedirectsPage />);
     await waitFor(() => {
       expect(screen.getByText("/old-blog")).toBeDefined();
     });
@@ -44,29 +54,29 @@ describe("RedirectsPage", () => {
   });
 
   it("shows empty state when no redirects", async () => {
-    callRoute = createMockCallRoute([]);
-    render(<RedirectsPage callRoute={callRoute} />);
+    mockListResponse([]);
+    render(<RedirectsPage />);
     await waitFor(() => {
       expect(screen.getByText("No redirects")).toBeDefined();
     });
   });
 
   it("shows redirect count", async () => {
-    render(<RedirectsPage callRoute={callRoute} />);
+    render(<RedirectsPage />);
     await waitFor(() => {
       expect(screen.getByText("2 redirects")).toBeDefined();
     });
   });
 
   it("has Add Redirect button", async () => {
-    render(<RedirectsPage callRoute={callRoute} />);
+    render(<RedirectsPage />);
     await waitFor(() => {
       expect(screen.getByText("Add Redirect")).toBeDefined();
     });
   });
 
   it("clicking Add Redirect shows new form", async () => {
-    render(<RedirectsPage callRoute={callRoute} />);
+    render(<RedirectsPage />);
     await waitFor(() => {
       expect(screen.getByText("/old-blog")).toBeDefined();
     });
@@ -78,7 +88,7 @@ describe("RedirectsPage", () => {
   });
 
   it("clicking Edit opens edit form with data", async () => {
-    render(<RedirectsPage callRoute={callRoute} />);
+    render(<RedirectsPage />);
     await waitFor(() => {
       expect(screen.getByText("/old-blog")).toBeDefined();
     });
@@ -89,7 +99,7 @@ describe("RedirectsPage", () => {
   });
 
   it("Save Redirect calls redirects/save", async () => {
-    render(<RedirectsPage callRoute={callRoute} />);
+    render(<RedirectsPage />);
     await waitFor(() => {
       expect(screen.getByText("/old-blog")).toBeDefined();
     });
@@ -100,7 +110,7 @@ describe("RedirectsPage", () => {
     fireEvent.click(screen.getByText("Save Redirect"));
 
     await waitFor(() => {
-      expect(callRoute).toHaveBeenCalledWith("redirects/save", {
+      expect(mockApiFetch).toHaveBeenCalledWith("redirects/save", {
         id: undefined,
         from: "/test-old",
         to: "/test-new",
@@ -111,7 +121,7 @@ describe("RedirectsPage", () => {
 
   it("Delete button shows confirm dialog", async () => {
     const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
-    render(<RedirectsPage callRoute={callRoute} />);
+    render(<RedirectsPage />);
     await waitFor(() => {
       expect(screen.getByText("/old-blog")).toBeDefined();
     });
@@ -121,18 +131,18 @@ describe("RedirectsPage", () => {
 
   it("Delete calls redirects/delete when confirmed", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
-    render(<RedirectsPage callRoute={callRoute} />);
+    render(<RedirectsPage />);
     await waitFor(() => {
       expect(screen.getByText("/old-blog")).toBeDefined();
     });
     fireEvent.click(screen.getByLabelText("Delete r-1"));
     await waitFor(() => {
-      expect(callRoute).toHaveBeenCalledWith("redirects/delete", { id: "r-1" });
+      expect(mockApiFetch).toHaveBeenCalledWith("redirects/delete", { id: "r-1" });
     });
   });
 
   it("Cancel closes the form", async () => {
-    render(<RedirectsPage callRoute={callRoute} />);
+    render(<RedirectsPage />);
     await waitFor(() => {
       expect(screen.getByText("/old-blog")).toBeDefined();
     });
@@ -143,7 +153,7 @@ describe("RedirectsPage", () => {
   });
 
   it("table has proper column headers", async () => {
-    render(<RedirectsPage callRoute={callRoute} />);
+    render(<RedirectsPage />);
     await waitFor(() => {
       expect(screen.getByText("/old-blog")).toBeDefined();
     });
@@ -156,8 +166,8 @@ describe("RedirectsPage", () => {
   });
 
   it("page heading is rendered", () => {
-    const pendingCallRoute = vi.fn().mockReturnValue(new Promise(() => {}));
-    render(<RedirectsPage callRoute={pendingCallRoute} />);
+    mockPendingResponse();
+    render(<RedirectsPage />);
     expect(screen.getByText("Redirects")).toBeDefined();
   });
 });

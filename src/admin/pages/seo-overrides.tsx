@@ -4,6 +4,7 @@ import { SocialPreview } from "../components/social-preview.js";
 import { CharacterCounter } from "../components/character-counter.js";
 import { EmptyState, ErrorBanner } from "../components/shared.js";
 import { colors } from "../tokens.js";
+import { apiFetch } from "../api.js";
 
 interface Override {
   id: string;
@@ -21,12 +22,7 @@ interface Override {
   };
 }
 
-export interface SeoOverridesPageProps {
-  callRoute: (route: string, input?: unknown) => Promise<unknown>;
-  siteUrl: string;
-}
-
-export function SeoOverridesPage({ callRoute, siteUrl }: SeoOverridesPageProps) {
+export function SeoOverridesPage() {
   const [overrides, setOverrides] = useState<Override[]>([]);
   const [editing, setEditing] = useState<string | null>(null);
   const [form, setForm] = useState({ title: "", description: "", focusKeyword: "", robots: "", canonical: "", ogImage: "", schemaType: "", breadcrumbLabel: "" });
@@ -43,7 +39,8 @@ export function SeoOverridesPage({ callRoute, siteUrl }: SeoOverridesPageProps) 
     setLoading(true);
     setError("");
     try {
-      const result = await callRoute("overrides/list", { collection: filter || undefined }) as { items: Override[] };
+      const res = await apiFetch("overrides/list", { collection: filter || undefined });
+      const result = await res.json() as { items: Override[] };
       setOverrides(result.items ?? []);
     } catch (e: any) {
       setError(e.message ?? "Failed to load overrides");
@@ -56,7 +53,7 @@ export function SeoOverridesPage({ callRoute, siteUrl }: SeoOverridesPageProps) 
     try {
       const override = overrides.find((o) => o.id === contentId);
       const { schemaType, breadcrumbLabel, ...rest } = form;
-      await callRoute("overrides/save", { contentId, collection: override?.data.collection ?? "", ...rest, schemaType: schemaType || undefined, breadcrumbLabel: breadcrumbLabel || undefined });
+      await apiFetch("overrides/save", { contentId, collection: override?.data.collection ?? "", ...rest, schemaType: schemaType || undefined, breadcrumbLabel: breadcrumbLabel || undefined });
       setEditing(null);
       loadOverrides();
     } catch (e: any) {
@@ -67,7 +64,7 @@ export function SeoOverridesPage({ callRoute, siteUrl }: SeoOverridesPageProps) 
   async function remove(contentId: string) {
     if (!confirm(`Delete SEO overrides for "${contentId}"?`)) return;
     try {
-      await callRoute("overrides/delete", { contentId });
+      await apiFetch("overrides/delete", { contentId });
       loadOverrides();
     } catch (e: any) {
       setError(e.message ?? "Failed to delete");
@@ -91,7 +88,8 @@ export function SeoOverridesPage({ callRoute, siteUrl }: SeoOverridesPageProps) 
 
   async function exportCsv() {
     try {
-      const result = await callRoute("overrides/export") as { csv: string };
+      const res = await apiFetch("overrides/export");
+      const result = await res.json() as { csv: string };
       const blob = new Blob([result.csv], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -107,7 +105,8 @@ export function SeoOverridesPage({ callRoute, siteUrl }: SeoOverridesPageProps) 
   async function importCsv(file: File) {
     try {
       const csv = await file.text();
-      const result = await callRoute("overrides/import", { csv }) as { success?: boolean; error?: string; message?: string; count?: number };
+      const res = await apiFetch("overrides/import", { csv });
+      const result = await res.json() as { success?: boolean; error?: string; message?: string; count?: number };
       if (result.error) {
         setError(result.message ?? result.error);
       } else {
@@ -279,14 +278,14 @@ export function SeoOverridesPage({ callRoute, siteUrl }: SeoOverridesPageProps) 
               <h4 style={{ fontSize: "0.8125rem", fontWeight: 600, color: colors.textSecondary, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 12 }}>
                 Search Preview
               </h4>
-              <SerpPreview title={form.title} url={form.canonical || siteUrl} description={form.description} />
+              <SerpPreview title={form.title} url={form.canonical || ""} description={form.description} />
             </div>
 
             <div style={{ marginTop: 16 }}>
               <h4 style={{ fontSize: "0.8125rem", fontWeight: 600, color: colors.textSecondary, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 12 }}>
                 Social Preview
               </h4>
-              <SocialPreview title={form.title} description={form.description} image={form.ogImage} url={form.canonical || siteUrl} platform="facebook" />
+              <SocialPreview title={form.title} description={form.description} image={form.ogImage} url={form.canonical || ""} platform="facebook" />
             </div>
 
             <div style={{ marginTop: 20, display: "flex", gap: 8, justifyContent: "flex-end" }}>

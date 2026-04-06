@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ErrorBanner, EmptyState } from "../components/shared.js";
 import { colors } from "../tokens.js";
+import { apiFetch } from "../api.js";
 
 interface Redirect {
   id: string;
@@ -12,11 +13,7 @@ interface Redirect {
   };
 }
 
-export interface RedirectsPageProps {
-  callRoute: (route: string, input?: unknown) => Promise<unknown>;
-}
-
-export function RedirectsPage({ callRoute }: RedirectsPageProps) {
+export function RedirectsPage() {
   const [redirects, setRedirects] = useState<Redirect[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -29,7 +26,8 @@ export function RedirectsPage({ callRoute }: RedirectsPageProps) {
     setLoading(true);
     setError("");
     try {
-      const result = await callRoute("redirects/list", {}) as { items: Redirect[] };
+      const res = await apiFetch("redirects/list", {});
+      const result = await res.json() as { items: Redirect[] };
       setRedirects(result.items ?? []);
     } catch (e: any) {
       setError(e.message ?? "Failed to load redirects");
@@ -40,7 +38,7 @@ export function RedirectsPage({ callRoute }: RedirectsPageProps) {
 
   async function save() {
     try {
-      await callRoute("redirects/save", {
+      await apiFetch("redirects/save", {
         id: editing !== "new" ? editing : undefined,
         from: form.from,
         to: form.to,
@@ -57,7 +55,7 @@ export function RedirectsPage({ callRoute }: RedirectsPageProps) {
   async function remove(id: string) {
     if (!confirm(`Delete redirect "${id}"?`)) return;
     try {
-      await callRoute("redirects/delete", { id });
+      await apiFetch("redirects/delete", { id });
       await loadRedirects();
     } catch (e: any) {
       setError(e.message ?? "Failed to delete redirect");
