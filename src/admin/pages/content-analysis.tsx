@@ -1,311 +1,177 @@
-import React, { useState } from "react";
-import { ScoreBadge } from "../components/score-badge.js";
-import { ErrorBanner, EmptyState } from "../components/shared.js";
-import { colors } from "../tokens.js";
+import React, { useState, useEffect } from "react";
 import { apiFetch } from "../api.js";
+import { apiFetch as baseFetch } from "emdash/plugin-utils";
 import type { SeoCheck } from "../../types.js";
 
+interface ContentItem {
+  id: string;
+  data: { title?: string; slug?: string };
+  collection?: string;
+}
+
+interface AnalysisResult {
+  score: number;
+  checks: SeoCheck[];
+}
+
 const STATUS_ICON: Record<string, string> = { pass: "\u2713", warn: "\u26A0", fail: "\u2717" };
+const STATUS_COLOR: Record<string, string> = { pass: "#10b981", warn: "#f59e0b", fail: "#ef4444" };
 
 export function ContentAnalysisPage() {
-  const [contentId, setContentId] = useState("");
-  const [result, setResult] = useState<{ score: number; checks: SeoCheck[]; altSuggestions?: Array<{ src?: string; imageIndex: number; suggestedAlt: string }> } | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [content, setContent] = useState<ContentItem[]>([]);
+  const [contentLoading, setContentLoading] = useState(true);
+  const [analyzing, setAnalyzing] = useState<string | null>(null);
+  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const [linkSuggestions, setLinkSuggestions] = useState<any[]>([]);
-  const [orphaned, setOrphaned] = useState<any[]>([]);
-  const [orphanedLoading, setOrphanedLoading] = useState(false);
-  const [brokenLinks, setBrokenLinks] = useState<any[]>([]);
-  const [brokenLoading, setBrokenLoading] = useState(false);
-  const [searchStats, setSearchStats] = useState<any[]>([]);
-  const [searchStatsLoading, setSearchStatsLoading] = useState(false);
 
-  async function analyze(advanced = false) {
-    if (!contentId.trim()) return;
-    setLoading(true);
+  useEffect(() => {
+    baseFetch("/_emdash/api/content?limit=100", { method: "GET" })
+      .then((res) => res.json())
+      .then((data: any) => {
+        setContent(data.data || data.items || []);
+        setContentLoading(false);
+      })
+      .catch(() => {
+        setContentLoading(false);
+        setError("Failed to load content");
+      });
+  }, []);
+
+  async function analyze(contentId: string) {
+    setAnalyzing(contentId);
+    setSelectedId(contentId);
+    setResult(null);
     setError("");
     try {
-      const route = advanced ? "analyze/advanced" : "analyze";
-      const res = await apiFetch(route, { contentId: contentId.trim() });
-      const data = await res.json() as any;
+      const res = await apiFetch("analyze", { contentId });
+      const data = (await res.json()) as any;
       if (data.error) {
         setError(data.message || data.error);
-        setResult(null);
       } else {
         setResult(data);
-        setLinkSuggestions([]);
-        if (advanced) {
-          apiFetch("analyze/link-suggestions", { contentId: contentId.trim() })
-            .then(async (r) => {
-              const d = await r.json() as any;
-              setLinkSuggestions(d.suggestions ?? []);
-            })
-            .catch(() => setLinkSuggestions([]));
-        }
       }
     } catch (e: any) {
-      setError(e.message ?? "Analysis failed");
+      setError(e.message || "Analysis failed");
     } finally {
-      setLoading(false);
+      setAnalyzing(null);
     }
-  }
-
-  async function loadOrphaned() {
-    setError("");
-    setOrphanedLoading(true);
-    try {
-      const res = await apiFetch("analyze/orphaned");
-      const data = await res.json() as any;
-      if (data.error) {
-        setError(data.message ?? data.error);
-      } else {
-        setOrphaned(data.orphaned ?? []);
-      }
-    } catch (e: any) {
-      setError(e.message ?? "Failed to load orphaned content");
-    } finally {
-      setOrphanedLoading(false);
-    }
-  }
-
-  async function loadBrokenLinks() {
-    if (!contentId.trim()) return;
-    setError("");
-    setBrokenLoading(true);
-    try {
-      const res = await apiFetch("analyze/broken-links", { contentId: contentId.trim() });
-      const data = await res.json() as any;
-      if (data.error) {
-        setError(data.message ?? data.error);
-      } else {
-        setBrokenLinks(data.broken ?? []);
-      }
-    } catch (e: any) {
-      setError(e.message ?? "Failed to check broken links");
-    } finally {
-      setBrokenLoading(false);
-    }
-  }
-
-  async function loadSearchStats() {
-    setError("");
-    setSearchStatsLoading(true);
-    try {
-      const res = await apiFetch("analyze/search-stats");
-      const data = await res.json() as any;
-      if (data.error) {
-        setError(data.message ?? data.error);
-      } else {
-        setSearchStats(data.stats ?? []);
-      }
-    } catch (e: any) {
-      setError(e.message ?? "Failed to load search stats");
-    } finally {
-      setSearchStatsLoading(false);
-    }
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter") analyze(false);
   }
 
   return (
-    <div className="seo-plugin">
-      <h2 style={{ margin: "0 0 16px", fontSize: "1.25rem", fontWeight: 600 }}>Content Analysis</h2>
+    <div>
+      <h2 style={{ margin: "0 0 1.5rem", fontSize: "1.25rem" }}>Content Analysis</h2>
 
-      <div className="seo-card" style={{ marginBottom: 24 }}>
-        <div className="seo-card-body">
-          <label htmlFor="analysis-id" className="seo-label">Content ID</label>
-          <div style={{ display: "flex", gap: 8 }}>
-            <input
-              id="analysis-id" className="seo-input" type="text"
-              placeholder="Enter a content ID to analyze..."
-              value={contentId} onChange={(e) => setContentId(e.target.value)}
-              onKeyDown={handleKeyDown} style={{ flex: 1 }}
-            />
-            <button className="seo-btn seo-btn-primary" onClick={() => analyze(false)} disabled={loading || !contentId.trim()}>
-              {loading ? "Analyzing..." : "Analyze"}
-            </button>
-            <button className="seo-btn seo-btn-secondary" onClick={() => analyze(true)} disabled={loading || !contentId.trim()}>
-              Advanced (Pro)
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {error && <ErrorBanner message={error} />}
-
-      {error && error.includes("Pro") && (
-        <div style={{ padding: "16px", background: "rgba(11,214,143,0.08)", border: "1px solid rgba(11,214,143,0.2)", borderRadius: "8px", marginBottom: 16, textAlign: "center" }}>
-          <div style={{ fontWeight: 600, marginBottom: 4 }}>Unlock Advanced Analysis</div>
-          <div style={{ fontSize: "0.8125rem", color: colors.textSecondary, marginBottom: 12 }}>Get readability checks, link suggestions, broken link detection, and more.</div>
-          <a href="https://emdashseo.app/#pricing" target="_blank" rel="noopener"
-            style={{ display: "inline-block", padding: "8px 20px", background: "#0bd68f", color: "#0a0a0c", borderRadius: "6px", textDecoration: "none", fontWeight: 600, fontSize: "0.8125rem" }}>
-            Upgrade to Pro — $49/yr
-          </a>
+      {error && (
+        <div
+          role="alert"
+          style={{
+            padding: "12px",
+            background: "#fef2f2",
+            border: "1px solid #fecaca",
+            borderRadius: "6px",
+            color: "#991b1b",
+            marginBottom: "1rem",
+            fontSize: "0.875rem",
+          }}
+        >
+          {error}
         </div>
       )}
 
+      {contentLoading ? (
+        <p style={{ color: "#6b7280" }}>Loading content...</p>
+      ) : content.length === 0 && !error ? (
+        <p style={{ color: "#6b7280" }}>No content found. Create some posts or pages first.</p>
+      ) : content.length > 0 ? (
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
+          <thead>
+            <tr style={{ borderBottom: "2px solid #e5e7eb", textAlign: "left" }}>
+              <th style={{ padding: "8px 12px", fontWeight: 600 }}>Title</th>
+              <th style={{ padding: "8px 12px", fontWeight: 600 }}>Collection</th>
+              <th style={{ padding: "8px 12px", fontWeight: 600, width: 100 }}>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {content.map((item) => (
+              <tr
+                key={item.id}
+                style={{
+                  borderBottom: "1px solid #f3f4f6",
+                  background: selectedId === item.id ? "#f0fdf4" : "transparent",
+                }}
+              >
+                <td style={{ padding: "8px 12px" }}>{item.data?.title || item.id}</td>
+                <td style={{ padding: "8px 12px", color: "#6b7280" }}>{item.collection || "\u2014"}</td>
+                <td style={{ padding: "8px 12px" }}>
+                  <button
+                    onClick={() => analyze(item.id)}
+                    disabled={analyzing === item.id}
+                    style={{
+                      padding: "4px 12px",
+                      fontSize: "0.8rem",
+                      cursor: "pointer",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "4px",
+                      background: analyzing === item.id ? "#f3f4f6" : "#fff",
+                    }}
+                  >
+                    {analyzing === item.id ? "..." : "Analyze"}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : null}
+
       {result && (
-        <div className="seo-card seo-fade-in">
-          <div style={{ padding: "20px 16px", display: "flex", alignItems: "center", gap: 20, borderBottom: `1px solid ${colors.borderSubtle}` }}>
-            <ScoreBadge score={result.score} size={72} showLabel />
+        <div style={{ marginTop: "1.5rem", padding: "1rem", border: "1px solid #e5e7eb", borderRadius: "8px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1rem" }}>
+            <div
+              style={{
+                fontSize: "2rem",
+                fontWeight: 700,
+                color: result.score >= 70 ? "#10b981" : result.score >= 40 ? "#f59e0b" : "#ef4444",
+              }}
+            >
+              {result.score}
+            </div>
             <div>
-              <div style={{ fontSize: "1.5rem", fontWeight: 700, color: colors.textPrimary }}>{result.score}/100</div>
-              <div style={{ fontSize: "0.8125rem", color: colors.textSecondary }}>{result.checks.length} checks performed</div>
+              <div style={{ fontWeight: 600 }}>SEO Score</div>
+              <div style={{ fontSize: "0.8rem", color: "#6b7280" }}>{result.checks.length} checks performed</div>
             </div>
           </div>
-          <div className="seo-card-body" style={{ padding: 0 }}>
-            {result.checks.map((check) => {
-              const badgeClass = check.status === "pass" ? "seo-badge-success" : check.status === "warn" ? "seo-badge-warning" : "seo-badge-error";
-              return (
-                <div key={check.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", borderBottom: `1px solid ${colors.borderSubtle}` }}>
-                  <span className={`seo-badge ${badgeClass}`} aria-label={check.status} style={{ minWidth: 24, justifyContent: "center" }}>
-                    {STATUS_ICON[check.status]}
-                  </span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 500, fontSize: "0.8125rem", color: colors.textPrimary }}>{check.label}</div>
-                    <div style={{ fontSize: "0.75rem", color: colors.textSecondary }}>{check.message}</div>
-                  </div>
+          <div>
+            {result.checks.map((check) => (
+              <div
+                key={check.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "6px 0",
+                  borderBottom: "1px solid #f3f4f6",
+                }}
+              >
+                <span
+                  style={{
+                    color: STATUS_COLOR[check.status] || "#6b7280",
+                    fontWeight: 700,
+                    width: 20,
+                  }}
+                >
+                  {STATUS_ICON[check.status] || "?"}
+                </span>
+                <div>
+                  <div style={{ fontSize: "0.875rem", fontWeight: 500 }}>{check.label}</div>
+                  <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>{check.message}</div>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {result && (
-        <div className="seo-card seo-fade-in" style={{ marginTop: 16 }}>
-          <div style={{ padding: "12px 16px", borderBottom: `1px solid ${colors.borderSubtle}` }}>
-            <h4 style={{ margin: 0, fontSize: "0.875rem", fontWeight: 600 }}>Internal Link Suggestions</h4>
-          </div>
-          <div className="seo-card-body">
-            {linkSuggestions.length === 0 ? (
-              <div style={{ color: colors.textTertiary, fontSize: "0.8125rem" }}>No link suggestions available. Run Advanced analysis for suggestions.</div>
-            ) : (
-              linkSuggestions.map((s, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${colors.borderSubtle}` }}>
-                  <div>
-                    <div style={{ fontWeight: 500, fontSize: "0.8125rem" }}>{s.targetTitle}</div>
-                    <div style={{ fontSize: "0.75rem", color: colors.textTertiary }}>{s.targetUrl}</div>
-                  </div>
-                  <span className="seo-badge seo-badge-success">{Math.round(s.relevanceScore * 100)}%</span>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-
-      {result?.altSuggestions && result.altSuggestions.length > 0 && (
-        <div className="seo-card seo-fade-in" style={{ marginTop: 16 }}>
-          <div style={{ padding: "12px 16px", borderBottom: `1px solid ${colors.borderSubtle}` }}>
-            <h4 style={{ margin: 0, fontSize: "0.875rem", fontWeight: 600 }}>Alt Text Suggestions</h4>
-          </div>
-          <div className="seo-card-body">
-            {result.altSuggestions.map((s, i) => (
-              <div key={i} style={{ padding: "8px 0", borderBottom: `1px solid ${colors.borderSubtle}` }}>
-                <div style={{ fontSize: "0.8125rem", fontWeight: 500 }}>{s.src || `Image ${s.imageIndex + 1}`}</div>
-                <div style={{ fontSize: "0.75rem", color: colors.textSecondary }}>Suggested: &quot;{s.suggestedAlt}&quot;</div>
               </div>
             ))}
           </div>
         </div>
       )}
-
-      {!result && !error && !loading && (
-        <EmptyState title="Run an analysis" description="Enter a content ID above and click Analyze to see your SEO score." />
-      )}
-
-      {/* Orphaned Content Section */}
-      <div className="seo-card" style={{ marginTop: 24 }}>
-        <div style={{ padding: "12px 16px", borderBottom: `1px solid ${colors.borderSubtle}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h4 style={{ margin: 0, fontSize: "0.875rem", fontWeight: 600 }}>Orphaned Content</h4>
-          <button className="seo-btn seo-btn-secondary seo-btn-sm" onClick={loadOrphaned} disabled={orphanedLoading}>
-            {orphanedLoading ? "Scanning..." : "Find Orphaned (Pro)"}
-          </button>
-        </div>
-        <div className="seo-card-body">
-          {orphaned.length === 0 ? (
-            <div style={{ color: colors.textTertiary, fontSize: "0.8125rem" }}>No orphaned content detected. Click above to scan.</div>
-          ) : (
-            orphaned.map((item: any) => (
-              <div key={item.id} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${colors.borderSubtle}` }}>
-                <div>
-                  <div style={{ fontWeight: 500, fontSize: "0.8125rem" }}>{item.title || item.id}</div>
-                  <div style={{ fontSize: "0.75rem", color: colors.textTertiary }}>{item.url}</div>
-                </div>
-                {item.collection && <span className="seo-badge seo-badge-warning">{item.collection}</span>}
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* Broken Links Section */}
-      <div className="seo-card" style={{ marginTop: 16 }}>
-        <div style={{ padding: "12px 16px", borderBottom: `1px solid ${colors.borderSubtle}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h4 style={{ margin: 0, fontSize: "0.875rem", fontWeight: 600 }}>Broken Links</h4>
-          <button className="seo-btn seo-btn-secondary seo-btn-sm" onClick={loadBrokenLinks} disabled={brokenLoading || !contentId.trim()}>
-            {brokenLoading ? "Checking..." : "Check Links (Pro)"}
-          </button>
-        </div>
-        <div className="seo-card-body">
-          {brokenLinks.length === 0 ? (
-            <div style={{ color: colors.textTertiary, fontSize: "0.8125rem" }}>No broken links found. Enter a content ID and click above to check.</div>
-          ) : (
-            brokenLinks.map((link: any, i: number) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${colors.borderSubtle}` }}>
-                <div>
-                  <div style={{ fontWeight: 500, fontSize: "0.8125rem" }}>{link.text || "Untitled link"}</div>
-                  <div style={{ fontSize: "0.75rem", color: colors.textTertiary }}>{link.url}</div>
-                </div>
-                <span className="seo-badge seo-badge-error">{link.status}</span>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* Search Stats Section */}
-      <div className="seo-card" style={{ marginTop: 16 }}>
-        <div style={{ padding: "12px 16px", borderBottom: `1px solid ${colors.borderSubtle}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h4 style={{ margin: 0, fontSize: "0.875rem", fontWeight: 600 }}>Search Stats</h4>
-          <button className="seo-btn seo-btn-secondary seo-btn-sm" onClick={loadSearchStats} disabled={searchStatsLoading}>
-            {searchStatsLoading ? "Loading..." : "Fetch Stats (Pro)"}
-          </button>
-        </div>
-        <div className="seo-card-body">
-          {searchStats.length === 0 ? (
-            <div style={{ color: colors.textTertiary, fontSize: "0.8125rem" }}>No search stats available. Click above to fetch from Google Search Console.</div>
-          ) : (
-            <div className="seo-table-wrap">
-              <table className="seo-table">
-                <thead>
-                  <tr>
-                    <th>Query</th>
-                    <th>Clicks</th>
-                    <th>Impressions</th>
-                    <th>CTR</th>
-                    <th>Position</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {searchStats.map((stat: any, i: number) => (
-                    <tr key={i}>
-                      <td style={{ fontWeight: 500 }}>{stat.query}</td>
-                      <td>{stat.clicks}</td>
-                      <td>{stat.impressions}</td>
-                      <td>{(stat.ctr * 100).toFixed(1)}%</td>
-                      <td>{stat.position.toFixed(1)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 }

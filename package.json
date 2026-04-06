@@ -1,6 +1,6 @@
 {
   "name": "@ai-rockstar/emdash-seo",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "SEO toolkit for Emdash CMS — meta tags, OpenGraph, JSON-LD, sitemaps, and content analysis",
   "type": "module",
   "main": "dist/index.js",
