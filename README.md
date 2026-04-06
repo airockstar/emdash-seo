@@ -112,14 +112,16 @@ The complete SEO toolkit for Emdash CMS -- meta tags, sitemaps, structured data,
 npm install @emdash-seo/toolkit
 ```
 
-Then add the plugin to your `live.config.ts`:
+Then add the plugin to your `astro.config.mjs`:
 
-```typescript
-import seoToolkit from "@emdash-seo/toolkit";
+```javascript
+import seoToolkit from "@ai-rockstar/emdash-seo";
 
-export default {
+// Inside your emdash() integration config:
+emdash({
   plugins: [seoToolkit()],
-};
+  // ... your other config
+})
 ```
 
 ---

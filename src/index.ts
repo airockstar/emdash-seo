@@ -18,9 +18,36 @@ import { socialRoutes } from "./routes/social.js";
 import { licenseRoutes } from "./routes/license.js";
 import { redirectRoutes } from "./routes/redirects.js";
 
+// ─── Plugin Descriptor (for astro.config.mjs) ───────────────────
+
+export default function seoToolkit() {
+  return {
+    id: "@emdash-seo/toolkit",
+    version: "0.2.2",
+    entrypoint: "@ai-rockstar/emdash-seo",
+    adminEntry: "@ai-rockstar/emdash-seo/admin",
+    options: {},
+    capabilities: [...CAPABILITIES],
+    allowedHosts: ["api.twitter.com", "api.x.com", "bsky.social", "*.bsky.social", "api.indexnow.org", "www.googleapis.com"],
+    storage: STORAGE,
+    adminPages: [
+      { path: "seo-overrides", label: "SEO Overrides", icon: "search" },
+      { path: "content-analysis", label: "Content Analysis", icon: "chart" },
+      { path: "redirects", label: "Redirects", icon: "link" },
+    ],
+    adminWidgets: [
+      { id: "seo-status", title: "SEO Status", size: "half" as const },
+      { id: "seo-score", title: "SEO Score", size: "half" as const },
+    ],
+    settingsSchema: SETTINGS_SCHEMA,
+  };
+}
+
+// ─── Plugin Implementation (loaded by Emdash runtime) ────────────
+
 const definition: PluginDefinition = {
   id: "@emdash-seo/toolkit",
-  version: "0.2.1",
+  version: "0.2.2",
 
   capabilities: CAPABILITIES,
   allowedHosts: ["api.twitter.com", "api.x.com", "bsky.social", "*.bsky.social", "api.indexnow.org", "www.googleapis.com"],
@@ -57,7 +84,6 @@ const definition: PluginDefinition = {
   } as any,
 
   admin: {
-    entry: "./admin/index.tsx",
     settingsSchema: SETTINGS_SCHEMA,
     fieldWidgets: [
       {
@@ -78,4 +104,6 @@ const definition: PluginDefinition = {
   },
 };
 
-export default () => definePlugin(definition);
+export function createPlugin() {
+  return definePlugin(definition);
+}
