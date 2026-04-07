@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { SerpPreview } from "../components/serp-preview.js";
 import { SocialPreview } from "../components/social-preview.js";
 import { CharacterCounter } from "../components/character-counter.js";
@@ -34,11 +34,19 @@ export function SeoOverridesPage() {
   const [error, setError] = useState("");
   const [allContent, setAllContent] = useState<ContentItem[]>([]);
   const [showContentPicker, setShowContentPicker] = useState(false);
+  const contentTitles = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const item of allContent) map[item.id] = item.title;
+    return map;
+  }, [allContent]);
   const lastFilterRef = useRef("");
   const editRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { loadOverrides(); }, []);
+  useEffect(() => {
+    loadOverrides();
+    loadAllContent().then((items) => setAllContent(items)).catch(() => {});
+  }, []);
 
   async function loadOverrides() {
     setLoading(true);
@@ -87,7 +95,7 @@ export function SeoOverridesPage() {
   }
 
   async function remove(contentId: string) {
-    if (!confirm(`Delete SEO overrides for "${contentId}"?`)) return;
+    if (!confirm(`Delete SEO overrides for "${contentTitles[contentId] || contentId}"?`)) return;
     try {
       await apiFetch("overrides/delete", { contentId });
       loadOverrides();
@@ -258,7 +266,7 @@ export function SeoOverridesPage() {
             <tbody>
               {overrides.map((o) => (
                 <tr key={o.id}>
-                  <td style={{ fontWeight: 500 }}>{o.id}</td>
+                  <td style={{ fontWeight: 500 }}>{contentTitles[o.id] || o.id}</td>
                   <td><span className="seo-badge seo-badge-success">{o.data.collection ?? "—"}</span></td>
                   <td>{o.data.title || <em style={{ color: colors.textTertiary }}>Not set</em>}</td>
                   <td style={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -284,7 +292,7 @@ export function SeoOverridesPage() {
       {editing && (
         <div ref={editRef} className="seo-card seo-fade-in" style={{ marginTop: 24 }}>
           <div style={{ padding: "12px 16px", borderBottom: `1px solid ${colors.borderSubtle}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h3 style={{ margin: 0, fontSize: "0.875rem", fontWeight: 600 }}>Editing: {editing}</h3>
+            <h3 style={{ margin: 0, fontSize: "0.875rem", fontWeight: 600 }}>Editing: {contentTitles[editing!] || editing}</h3>
             <button className="seo-btn seo-btn-secondary seo-btn-sm" onClick={() => setEditing(null)}>Close</button>
           </div>
           <div className="seo-card-body">
