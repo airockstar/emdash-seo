@@ -8,7 +8,7 @@ function createAnalyzeCtx(contentItem: any, overrides: Record<string, any> = {},
     settings,
     contentItems: [contentItem],
   });
-  return { ...ctx, input: { contentId: contentItem.id } };
+  return { ...ctx, input: { contentId: contentItem.id, collection: contentItem.collection } };
 }
 
 const sampleContent = {
@@ -45,7 +45,7 @@ describe("analyze route (free)", () => {
 
   it("returns error for missing content", async () => {
     const ctx = createMockCtx();
-    const result = await handler({ ...ctx, input: { contentId: "nonexistent" } } as any);
+    const result = await handler({ ...ctx, input: { contentId: "nonexistent", collection: "posts" } } as any);
 
     expect(result.error).toBe("not_found");
   });

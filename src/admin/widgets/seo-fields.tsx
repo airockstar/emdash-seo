@@ -25,8 +25,7 @@ export function SeoFieldsWidget({ contentId, collection, siteUrl }: SeoFieldsWid
 
   useEffect(() => {
     apiFetch("overrides/get", { contentId })
-      .then(async (res) => {
-        const data = await res.json() as any;
+      .then((data: any) => {
         if (data?.overrides) {
           setFields({
             title: data.overrides.title ?? "",

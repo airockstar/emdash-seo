@@ -38,7 +38,7 @@ const MOCK_OVERRIDES = [
 ];
 
 function mockListResponse(items = MOCK_OVERRIDES) {
-  mockApiFetch.mockResolvedValue(new Response(JSON.stringify({ items })));
+  mockApiFetch.mockResolvedValue({ items });
 }
 
 function mockPendingResponse() {
@@ -78,7 +78,7 @@ describe("SeoOverridesPage", () => {
     await waitFor(() => {
       expect(screen.getByText("No overrides yet")).toBeDefined();
     });
-    expect(screen.getByText("Edit content in the CMS to add SEO overrides.")).toBeDefined();
+    expect(screen.getByText(/Click 'Add Override' above/)).toBeDefined();
   });
 
   // 4. Shows item count in header
@@ -478,8 +478,8 @@ describe("SeoOverridesPage", () => {
     Object.defineProperty(URL, "revokeObjectURL", { value: revokeObjectURL, writable: true });
 
     mockApiFetch.mockImplementation((route: string) => {
-      if (route === "overrides/export") return Promise.resolve(new Response(JSON.stringify({ csv: "contentId,title\np-1,Test" })));
-      return Promise.resolve(new Response(JSON.stringify({ items: MOCK_OVERRIDES })));
+      if (route === "overrides/export") return Promise.resolve({ csv: "contentId,title\np-1,Test" });
+      return Promise.resolve({ items: MOCK_OVERRIDES });
     });
     render(<SeoOverridesPage />);
     await waitFor(() => {

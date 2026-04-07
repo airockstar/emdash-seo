@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ErrorBanner, EmptyState } from "../components/shared.js";
+import { ErrorBanner, EmptyState, SeoStyleProvider } from "../components/shared.js";
 import { colors } from "../tokens.js";
 import { apiFetch } from "../api.js";
 
@@ -26,8 +26,7 @@ export function RedirectsPage() {
     setLoading(true);
     setError("");
     try {
-      const res = await apiFetch("redirects/list", {});
-      const result = await res.json() as { items: Redirect[] };
+      const result = await apiFetch("redirects/list", {});
       setRedirects(result.items ?? []);
     } catch (e: any) {
       setError(e.message ?? "Failed to load redirects");
@@ -77,7 +76,7 @@ export function RedirectsPage() {
   }
 
   return (
-    <div className="seo-plugin">
+    <SeoStyleProvider>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <h2 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 600 }}>Redirects</h2>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -164,6 +163,6 @@ export function RedirectsPage() {
           </div>
         </div>
       )}
-    </div>
+    </SeoStyleProvider>
   );
 }

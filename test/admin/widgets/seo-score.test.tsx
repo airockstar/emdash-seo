@@ -43,7 +43,7 @@ describe("SeoScoreWidget", () => {
 
   // 3. Shows empty state when no scores
   it("shows empty state when no scores", async () => {
-    mockApiFetch.mockResolvedValue(new Response(JSON.stringify({ items: [] })));
+    mockApiFetch.mockResolvedValue(({ items: [] }));
     render(<SeoScoreWidget />);
 
     await waitFor(() => {
@@ -56,7 +56,7 @@ describe("SeoScoreWidget", () => {
 
   // 4. Renders ScoreBadge with average score
   it("renders ScoreBadge with average score", async () => {
-    mockApiFetch.mockResolvedValue(new Response(JSON.stringify({ items: makeScores([80, 60, 40]) })));
+    mockApiFetch.mockResolvedValue(({ items: makeScores([80, 60, 40]) }));
     render(<SeoScoreWidget />);
 
     await waitFor(() => {
@@ -70,7 +70,7 @@ describe("SeoScoreWidget", () => {
 
   // 5. Shows "Site Average" with page count
   it('shows "Site Average" with page count', async () => {
-    mockApiFetch.mockResolvedValue(new Response(JSON.stringify({ items: makeScores([90, 50]) })));
+    mockApiFetch.mockResolvedValue(({ items: makeScores([90, 50]) }));
     render(<SeoScoreWidget />);
 
     await waitFor(() => {
@@ -81,7 +81,7 @@ describe("SeoScoreWidget", () => {
   // 6. Shows good/fair/poor distribution counts
   it("shows good/fair/poor distribution counts", async () => {
     // 80 >= 70 => good, 55 >= 40 => fair, 20 < 40 => poor
-    mockApiFetch.mockResolvedValue(new Response(JSON.stringify({ items: makeScores([80, 55, 20]) })));
+    mockApiFetch.mockResolvedValue(({ items: makeScores([80, 55, 20]) }));
     render(<SeoScoreWidget />);
 
     await waitFor(() => {
@@ -93,7 +93,7 @@ describe("SeoScoreWidget", () => {
 
   // 7. Calculates average correctly (e.g., [80, 60, 40] = 60)
   it("calculates average correctly", async () => {
-    mockApiFetch.mockResolvedValue(new Response(JSON.stringify({ items: makeScores([80, 60, 40]) })));
+    mockApiFetch.mockResolvedValue(({ items: makeScores([80, 60, 40]) }));
     render(<SeoScoreWidget />);
 
     await waitFor(() => {
@@ -108,7 +108,7 @@ describe("SeoScoreWidget", () => {
   // 8. Counts categories correctly (good >= 70, fair 40-69, poor < 40)
   it("counts categories correctly with boundary values", async () => {
     // 70 => good (boundary), 69 => fair (boundary), 40 => fair (boundary), 39 => poor (boundary)
-    mockApiFetch.mockResolvedValue(new Response(JSON.stringify({ items: makeScores([70, 69, 40, 39]) })));
+    mockApiFetch.mockResolvedValue(({ items: makeScores([70, 69, 40, 39]) }));
     render(<SeoScoreWidget />);
 
     await waitFor(() => {
@@ -120,7 +120,7 @@ describe("SeoScoreWidget", () => {
 
   // 9. Calls apiFetch("scores/list", { limit: 100 }) on mount
   it('calls apiFetch("scores/list", { limit: 100 }) on mount', async () => {
-    mockApiFetch.mockResolvedValue(new Response(JSON.stringify({ items: [] })));
+    mockApiFetch.mockResolvedValue(({ items: [] }));
     render(<SeoScoreWidget />);
 
     await waitFor(() => {
@@ -131,7 +131,7 @@ describe("SeoScoreWidget", () => {
 
   // 10. Uses correct badge classes for good/fair/poor
   it("uses correct badge classes for good/fair/poor", async () => {
-    mockApiFetch.mockResolvedValue(new Response(JSON.stringify({ items: makeScores([90, 50, 10]) })));
+    mockApiFetch.mockResolvedValue(({ items: makeScores([90, 50, 10]) }));
     render(<SeoScoreWidget />);
 
     await waitFor(() => {

@@ -22,7 +22,7 @@ const MOCK_REDIRECTS = [
 ];
 
 function mockListResponse(items = MOCK_REDIRECTS) {
-  mockApiFetch.mockResolvedValue(new Response(JSON.stringify({ items })));
+  mockApiFetch.mockResolvedValue({ items });
 }
 
 function mockPendingResponse() {

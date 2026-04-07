@@ -6,6 +6,7 @@ import { buildContentUrl } from "../utils/url.js";
 
 const PostInput = z.object({
   contentId: z.string(),
+  collection: z.string(),
   platforms: z.array(z.enum(["twitter", "bluesky"])),
 });
 
@@ -24,8 +25,8 @@ export const socialRoutes = {
         return { error: "pro_required", message: "Social posting requires a Pro license" };
       }
 
-      const { contentId, platforms } = ctx.input;
-      const content = await ctx.content.get(contentId);
+      const { contentId, collection, platforms } = ctx.input;
+      const content = await ctx.content.get(collection, contentId);
       if (!content) {
         return { error: "not_found", message: "Content not found" };
       }
@@ -41,9 +42,9 @@ export const socialRoutes = {
 
       const postTemplate = template ?? "New: {title} \u2014 {url}";
       const contentData = {
-        title: content.title,
-        url: buildContentUrl(ctx.site.url, content.collection, content.slug, contentId),
-        description: content.description,
+        title: content.data?.title as string,
+        url: buildContentUrl(ctx.site.url, collection, content.data?.slug as string, contentId),
+        description: content.data?.description as string,
       };
 
       const settled = await Promise.allSettled(platforms.map(async (platform: string) => {

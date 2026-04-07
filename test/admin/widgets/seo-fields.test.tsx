@@ -12,13 +12,9 @@ const mockApiFetch = apiFetch as ReturnType<typeof vi.fn>;
 
 function mockOverridesGet(overrides: Record<string, unknown> | null = null) {
   mockApiFetch.mockImplementation(async (route: string) => {
-    if (route === "overrides/get") {
-      return new Response(JSON.stringify({ overrides }));
-    }
-    if (route === "overrides/save") {
-      return new Response(JSON.stringify({ success: true }));
-    }
-    return new Response(JSON.stringify({}));
+    if (route === "overrides/get") return { overrides };
+    if (route === "overrides/save") return { success: true };
+    return {};
   });
 }
 
@@ -121,7 +117,7 @@ describe("SeoFieldsWidget", () => {
 
   it("shows error message when save fails", async () => {
     mockApiFetch.mockImplementation(async (route: string) => {
-      if (route === "overrides/get") return new Response(JSON.stringify({ overrides: null }));
+      if (route === "overrides/get") return { overrides: null };
       throw new Error("Network error");
     });
     render(<SeoFieldsWidget {...defaultProps} />);

@@ -20,7 +20,7 @@ const STATUS_DATA = {
 };
 
 function mockSuccessResponse(data = STATUS_DATA) {
-  mockApiFetch.mockResolvedValue(new Response(JSON.stringify(data)));
+  mockApiFetch.mockResolvedValue(data);
 }
 
 function mockFailingResponse() {

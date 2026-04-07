@@ -18,10 +18,7 @@ export function SeoStatusWidget() {
 
   useEffect(() => {
     apiFetch("analytics/status")
-      .then(async (res) => {
-        const d = await res.json();
-        setData(d as StatusData);
-      })
+      .then((d: any) => setData(d as StatusData))
       .catch(() => setError(true));
   }, []);
 

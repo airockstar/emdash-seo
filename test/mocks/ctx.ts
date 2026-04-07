@@ -117,12 +117,15 @@ export function createMockCtx(options: MockCtxOptions = {}) {
     },
     url: (path: string) => `https://example.com${path}`,
     content: {
-      get: vi.fn(async (id: string) =>
-        (options.contentItems ?? []).find((c) => c.id === id) ?? null,
-      ),
-      list: vi.fn(async () => ({
-        items: (options.contentItems ?? []).map((c) => ({ id: c.id, data: c })),
-        nextCursor: undefined,
+      get: vi.fn(async (_collection: string, id: string) => {
+        const item = (options.contentItems ?? []).find((c) => c.id === id);
+        if (!item) return null;
+        return { id: item.id, type: item.collection, data: item, createdAt: "", updatedAt: "" };
+      }),
+      list: vi.fn(async (_collection: string) => ({
+        items: (options.contentItems ?? []).map((c) => ({ id: c.id, type: c.collection, data: c, createdAt: "", updatedAt: "" })),
+        cursor: undefined,
+        hasMore: false,
       })),
     },
     media: {

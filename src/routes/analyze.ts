@@ -70,24 +70,24 @@ function runPaidChecks(
   ];
 }
 
-const AnalyzeInput = z.object({ contentId: z.string() });
+const AnalyzeInput = z.object({ contentId: z.string(), collection: z.string() });
 
 export const analyzeRoutes = {
   analyze: {
     input: AnalyzeInput,
     handler: async (ctx: any) => {
-      const content = await ctx.content.get(ctx.input.contentId);
+      const content = await ctx.content.get(ctx.input.collection, ctx.input.contentId);
       if (!content) {
         return { error: "not_found", message: "Content not found" };
       }
 
       const overrides = await ctx.storage.overrides.get(ctx.input.contentId);
-      const title = overrides?.title ?? content.title;
-      const description = overrides?.description ?? content.description;
+      const title = overrides?.title ?? (content.data?.title as string | undefined);
+      const description = overrides?.description ?? (content.data?.description as string | undefined);
       const keyword = overrides?.focusKeyword;
-      const blocks = content.body ?? [];
+      const blocks = (content.data?.body as unknown[]) ?? [];
 
-      const ogImage = overrides?.ogImage ?? content.image;
+      const ogImage = overrides?.ogImage ?? (content.data?.image as string | undefined);
       const checks = runFreeChecks(title, description, keyword, blocks, ctx.site.url);
       const ogCheck = await checkOgImage(ogImage, ctx.media);
       checks.push(ogCheck);
@@ -95,7 +95,7 @@ export const analyzeRoutes = {
 
       await ctx.storage.scores.put(ctx.input.contentId, {
         contentId: ctx.input.contentId,
-        collection: content.collection ?? "",
+        collection: ctx.input.collection,
         score,
         checks,
         analyzedAt: new Date().toISOString(),
@@ -113,7 +113,7 @@ export const analyzeRoutes = {
         return { error: "pro_required", message: "Advanced analysis requires a Pro license" };
       }
 
-      const content = await ctx.content.get(ctx.input.contentId);
+      const content = await ctx.content.get(ctx.input.collection, ctx.input.contentId);
       if (!content) {
         return { error: "not_found", message: "Content not found" };
       }
@@ -123,15 +123,15 @@ export const analyzeRoutes = {
         ctx.storage.overrides.query({ limit: 1000 }),
       ]);
 
-      const title = overrides?.title ?? content.title;
-      const description = overrides?.description ?? content.description;
+      const title = overrides?.title ?? (content.data?.title as string | undefined);
+      const description = overrides?.description ?? (content.data?.description as string | undefined);
       const keyword = overrides?.focusKeyword;
-      const blocks = content.body ?? [];
-      const text = extractPlainText(blocks);
+      const blocks = (content.data?.body as unknown[]) ?? [];
+      const text = extractPlainText(blocks as any);
 
       const images = extractImages(blocks as any);
 
-      const ogImage = overrides?.ogImage ?? content.image;
+      const ogImage = overrides?.ogImage ?? (content.data?.image as string | undefined);
       const freeChecks = runFreeChecks(title, description, keyword, blocks, ctx.site.url);
       const ogCheck = await checkOgImage(ogImage, ctx.media);
       freeChecks.push(ogCheck);
@@ -150,7 +150,7 @@ export const analyzeRoutes = {
 
       await ctx.storage.scores.put(ctx.input.contentId, {
         contentId: ctx.input.contentId,
-        collection: content.collection ?? "",
+        collection: ctx.input.collection,
         score,
         checks,
         analyzedAt: new Date().toISOString(),
@@ -168,13 +168,13 @@ export const analyzeRoutes = {
         return { error: "pro_required", message: "Internal link suggestions require a Pro license" };
       }
 
-      const content = await ctx.content.get(ctx.input.contentId);
+      const content = await ctx.content.get(ctx.input.collection, ctx.input.contentId);
       if (!content) {
         return { error: "not_found", message: "Content not found" };
       }
 
-      const blocks = content.body ?? [];
-      const text = extractPlainText(blocks);
+      const blocks = (content.data?.body as unknown[]) ?? [];
+      const text = extractPlainText(blocks as any);
 
       const allItems = await fetchAllContent(ctx);
       const suggestions = suggestInternalLinks(
@@ -218,12 +218,12 @@ export const analyzeRoutes = {
         return { error: "pro_required", message: "Broken link checking requires a Pro license" };
       }
 
-      const content = await ctx.content.get(ctx.input.contentId);
+      const content = await ctx.content.get(ctx.input.collection, ctx.input.contentId);
       if (!content) {
         return { error: "not_found", message: "Content not found" };
       }
 
-      const blocks = content.body ?? [];
+      const blocks = (content.data?.body as unknown[]) ?? [];
       const links = extractLinks(blocks as any, ctx.site.url);
 
       // Only check internal links (safer — no unrestricted outbound fetch needed)

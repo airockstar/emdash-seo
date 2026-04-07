@@ -16,8 +16,7 @@ export function SeoScoreWidget() {
 
   useEffect(() => {
     apiFetch("scores/list", { limit: 100 })
-      .then(async (res) => {
-        const d = await res.json() as any;
+      .then((d: any) => {
         setScores(d.items ?? []);
       })
       .catch(() => setError(true))

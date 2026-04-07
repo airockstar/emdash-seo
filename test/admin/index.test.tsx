@@ -5,7 +5,7 @@ import { pages, widgets, fields } from "../../src/admin/index.js";
 
 // Mock apiFetch so components don't actually call the API
 vi.mock("../../src/admin/api.js", () => ({
-  apiFetch: vi.fn(() => Promise.resolve(new Response(JSON.stringify({ items: [] })))),
+  apiFetch: vi.fn(() => Promise.resolve({ items: [] })),
 }));
 
 // Mock the page/widget components so we don't pull in their full trees

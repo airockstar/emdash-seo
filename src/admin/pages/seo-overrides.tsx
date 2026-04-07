@@ -2,9 +2,12 @@ import React, { useState, useEffect, useRef } from "react";
 import { SerpPreview } from "../components/serp-preview.js";
 import { SocialPreview } from "../components/social-preview.js";
 import { CharacterCounter } from "../components/character-counter.js";
-import { EmptyState, ErrorBanner } from "../components/shared.js";
+import { EmptyState, ErrorBanner, SeoStyleProvider } from "../components/shared.js";
 import { colors } from "../tokens.js";
 import { apiFetch } from "../api.js";
+import { apiFetch as baseFetch } from "emdash/plugin-utils";
+import { loadAllContent } from "../utils/content-loader.js";
+import type { ContentItem } from "../utils/content-loader.js";
 
 interface Override {
   id: string;
@@ -29,6 +32,8 @@ export function SeoOverridesPage() {
   const [filter, setFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [allContent, setAllContent] = useState<ContentItem[]>([]);
+  const [showContentPicker, setShowContentPicker] = useState(false);
   const lastFilterRef = useRef("");
   const editRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -39,8 +44,7 @@ export function SeoOverridesPage() {
     setLoading(true);
     setError("");
     try {
-      const res = await apiFetch("overrides/list", { collection: filter || undefined });
-      const result = await res.json() as { items: Override[] };
+      const result = await apiFetch("overrides/list", { collection: filter || undefined });
       setOverrides(result.items ?? []);
     } catch (e: any) {
       setError(e.message ?? "Failed to load overrides");
@@ -52,8 +56,29 @@ export function SeoOverridesPage() {
   async function save(contentId: string) {
     try {
       const override = overrides.find((o) => o.id === contentId);
+      const collection = override?.data.collection ?? "";
       const { schemaType, breadcrumbLabel, ...rest } = form;
-      await apiFetch("overrides/save", { contentId, collection: override?.data.collection ?? "", ...rest, schemaType: schemaType || undefined, breadcrumbLabel: breadcrumbLabel || undefined });
+      const saveOverride = apiFetch("overrides/save", { contentId, collection, ...rest, schemaType: schemaType || undefined, breadcrumbLabel: breadcrumbLabel || undefined });
+
+      // Sync to Emdash's native SEO table so overrides appear in page source
+      const syncSeo = collection
+        ? baseFetch(`/_emdash/api/content/${collection}/${contentId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              seo: {
+                title: form.title || undefined,
+                description: form.description || undefined,
+                image: form.ogImage || undefined,
+                canonical: form.canonical || undefined,
+                robots: form.robots || undefined,
+              },
+            }),
+          }).catch(() => {})
+        : Promise.resolve();
+
+      await Promise.all([saveOverride, syncSeo]);
+
       setEditing(null);
       loadOverrides();
     } catch (e: any) {
@@ -88,8 +113,7 @@ export function SeoOverridesPage() {
 
   async function exportCsv() {
     try {
-      const res = await apiFetch("overrides/export");
-      const result = await res.json() as { csv: string };
+      const result = await apiFetch("overrides/export");
       const blob = new Blob([result.csv], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -105,8 +129,7 @@ export function SeoOverridesPage() {
   async function importCsv(file: File) {
     try {
       const csv = await file.text();
-      const res = await apiFetch("overrides/import", { csv });
-      const result = await res.json() as { success?: boolean; error?: string; message?: string; count?: number };
+      const result = await apiFetch("overrides/import", { csv });
       if (result.error) {
         setError(result.message ?? result.error);
       } else {
@@ -125,12 +148,32 @@ export function SeoOverridesPage() {
     if (filter !== lastFilterRef.current) { lastFilterRef.current = filter; loadOverrides(); }
   }
 
+  async function openContentPicker() {
+    if (allContent.length === 0) {
+      const items = await loadAllContent();
+      setAllContent(items);
+    }
+    setShowContentPicker(true);
+  }
+
+  function selectContentForOverride(item: ContentItem) {
+    setShowContentPicker(false);
+    setEditing(item.id);
+    setForm({ title: "", description: "", focusKeyword: "", robots: "", canonical: "", ogImage: "", schemaType: "", breadcrumbLabel: "" });
+    // Ensure the override exists for save
+    if (!overrides.find((o) => o.id === item.id)) {
+      setOverrides((prev) => [...prev, { id: item.id, data: { contentId: item.id, collection: item.collection } }]);
+    }
+    setTimeout(() => editRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 100);
+  }
+
   return (
-    <div className="seo-plugin">
+    <SeoStyleProvider>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <h2 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 600 }}>SEO Overrides</h2>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: "0.8125rem", color: colors.textSecondary }}>{overrides.length} items</span>
+          <button className="seo-btn seo-btn-primary seo-btn-sm" onClick={openContentPicker}>Add Override</button>
           <button className="seo-btn seo-btn-secondary seo-btn-sm" onClick={exportCsv}>CSV Export</button>
           <button className="seo-btn seo-btn-secondary seo-btn-sm" onClick={() => fileInputRef.current?.click()}>CSV Import (Pro)</button>
           <input
@@ -162,10 +205,44 @@ export function SeoOverridesPage() {
         />
       </div>
 
+      {showContentPicker && (
+        <div className="seo-card seo-fade-in" style={{ marginBottom: 16 }}>
+          <div style={{ padding: "12px 16px", borderBottom: `1px solid ${colors.borderSubtle}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h3 style={{ margin: 0, fontSize: "0.875rem", fontWeight: 600 }}>Select content to add SEO override</h3>
+            <button className="seo-btn seo-btn-secondary seo-btn-sm" onClick={() => setShowContentPicker(false)}>Cancel</button>
+          </div>
+          <div className="seo-card-body" style={{ maxHeight: 300, overflow: "auto" }}>
+            {allContent.length === 0 ? (
+              <p style={{ color: colors.textSecondary, fontSize: "0.8125rem" }}>Loading content...</p>
+            ) : (
+              allContent
+                .filter((item) => !overrides.some((o) => o.id === item.id))
+                .map((item) => (
+                  <div
+                    key={item.id}
+                    onClick={() => selectContentForOverride(item)}
+                    style={{
+                      padding: "8px 0",
+                      borderBottom: `1px solid ${colors.borderSubtle}`,
+                      cursor: "pointer",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <span style={{ fontSize: "0.8125rem", fontWeight: 500, color: colors.textBody }}>{item.title}</span>
+                    <span className="seo-badge seo-badge-success">{item.collection}</span>
+                  </div>
+                ))
+            )}
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="seo-empty">Loading overrides...</div>
-      ) : overrides.length === 0 ? (
-        <EmptyState title="No overrides yet" description="Edit content in the CMS to add SEO overrides." />
+      ) : overrides.length === 0 && !showContentPicker ? (
+        <EmptyState title="No overrides yet" description="Click 'Add Override' above to set custom SEO titles, descriptions, and more for your content." />
       ) : (
         <div className="seo-table-wrap">
           <table className="seo-table">
@@ -295,6 +372,6 @@ export function SeoOverridesPage() {
           </div>
         </div>
       )}
-    </div>
+    </SeoStyleProvider>
   );
 }

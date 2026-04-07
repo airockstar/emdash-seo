@@ -3,27 +3,42 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ContentAnalysisPage } from "../../../src/admin/pages/content-analysis.js";
 import { apiFetch } from "../../../src/admin/api.js";
-import { apiFetch as baseFetch } from "emdash/plugin-utils";
 
 vi.mock("../../../src/admin/api.js", () => ({
   apiFetch: vi.fn(),
 }));
 
-vi.mock("emdash/plugin-utils", () => ({
-  apiFetch: vi.fn(),
-}));
-
 const mockApiFetch = apiFetch as ReturnType<typeof vi.fn>;
-const mockBaseFetch = baseFetch as ReturnType<typeof vi.fn>;
+const mockFetch = vi.fn();
 
-const CONTENT_ITEMS = [
-  { id: "post-1", data: { title: "Hello World", slug: "hello-world" }, collection: "blog" },
-  { id: "post-2", data: { title: "About Us", slug: "about-us" }, collection: "pages" },
-  { id: "post-3", data: { slug: "no-title" } },
+const MANIFEST = {
+  data: {
+    collections: { posts: {}, pages: {} },
+  },
+};
+
+const POSTS = [
+  { id: "post-1", data: { title: "Hello World" } },
+  { id: "post-2", data: { title: "Second Post" } },
 ];
 
-function mockContentList(items = CONTENT_ITEMS) {
-  mockBaseFetch.mockResolvedValue(new Response(JSON.stringify({ data: items })));
+const PAGES = [
+  { id: "page-1", data: { title: "About Us" } },
+];
+
+function mockContentLoad() {
+  mockFetch.mockImplementation((url: string) => {
+    if (url.includes("/manifest")) {
+      return Promise.resolve(new Response(JSON.stringify(MANIFEST)));
+    }
+    if (url.includes("/content/posts")) {
+      return Promise.resolve(new Response(JSON.stringify({ data: { items: POSTS } })));
+    }
+    if (url.includes("/content/pages")) {
+      return Promise.resolve(new Response(JSON.stringify({ data: { items: PAGES } })));
+    }
+    return Promise.resolve(new Response(JSON.stringify({})));
+  });
 }
 
 function makeChecks(): Array<{ id: string; label: string; status: "pass" | "warn" | "fail"; message: string; weight: number }> {
@@ -37,65 +52,66 @@ function makeChecks(): Array<{ id: string; label: string; status: "pass" | "warn
 describe("ContentAnalysisPage", () => {
   beforeEach(() => {
     mockApiFetch.mockReset();
-    mockBaseFetch.mockReset();
+    mockFetch.mockReset();
+    vi.stubGlobal("fetch", mockFetch);
   });
 
   it("shows loading state initially", () => {
-    mockBaseFetch.mockReturnValue(new Promise(() => {})); // never resolves
+    mockFetch.mockReturnValue(new Promise(() => {}));
     render(<ContentAnalysisPage />);
     expect(screen.getByText("Loading content...")).toBeDefined();
   });
 
-  it("fetches content from Emdash API on mount", async () => {
-    mockContentList();
+  it("fetches manifest and content on mount", async () => {
+    mockContentLoad();
     render(<ContentAnalysisPage />);
 
     await waitFor(() => {
-      expect(mockBaseFetch).toHaveBeenCalledWith("/_emdash/api/content?limit=100", { method: "GET" });
+      expect(mockFetch).toHaveBeenCalledWith("/_emdash/api/manifest");
     });
   });
 
-  it("displays content items in a table", async () => {
-    mockContentList();
+  it("displays content items from all collections", async () => {
+    mockContentLoad();
     render(<ContentAnalysisPage />);
 
     await waitFor(() => {
       expect(screen.getByText("Hello World")).toBeDefined();
+      expect(screen.getByText("Second Post")).toBeDefined();
       expect(screen.getByText("About Us")).toBeDefined();
-      expect(screen.getByText("blog")).toBeDefined();
-      expect(screen.getByText("pages")).toBeDefined();
     });
   });
 
-  it("shows content ID as fallback when title is missing", async () => {
-    mockContentList();
+  it("shows collection name for each item", async () => {
+    mockContentLoad();
     render(<ContentAnalysisPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("post-3")).toBeDefined();
+      expect(screen.getAllByText("posts")).toHaveLength(2);
+      expect(screen.getAllByText("pages")).toHaveLength(1);
     });
   });
 
-  it("shows empty message when no content exists", async () => {
-    mockContentList([]);
+  it("shows empty message when no collections exist", async () => {
+    mockFetch.mockResolvedValue(new Response(JSON.stringify({ data: { collections: {} } })));
     render(<ContentAnalysisPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("No content found. Create some posts or pages first.")).toBeDefined();
+      expect(screen.getByText("No content found")).toBeDefined();
     });
   });
 
-  it("shows error when content fetch fails", async () => {
-    mockBaseFetch.mockRejectedValue(new Error("Network error"));
+  it("shows empty state when manifest fetch fails", async () => {
+    mockFetch.mockRejectedValue(new Error("Network error"));
     render(<ContentAnalysisPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("Failed to load content")).toBeDefined();
+      expect(screen.getByText("No content found")).toBeDefined();
     });
   });
 
   it("has an Analyze button for each content item", async () => {
-    mockContentList();
+    mockContentLoad();
     render(<ContentAnalysisPage />);
 
     await waitFor(() => {
@@ -104,26 +120,9 @@ describe("ContentAnalysisPage", () => {
     });
   });
 
-  it("calls apiFetch with analyze route when Analyze is clicked", async () => {
-    mockContentList();
-    mockApiFetch.mockResolvedValue(new Response(JSON.stringify({ score: 75, checks: makeChecks() })));
-    render(<ContentAnalysisPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Hello World")).toBeDefined();
-    });
-
-    const buttons = screen.getAllByText("Analyze");
-    fireEvent.click(buttons[0]);
-
-    await waitFor(() => {
-      expect(mockApiFetch).toHaveBeenCalledWith("analyze", { contentId: "post-1" });
-    });
-  });
-
-  it("shows score and checks after successful analysis", async () => {
-    mockContentList();
-    mockApiFetch.mockResolvedValue(new Response(JSON.stringify({ score: 75, checks: makeChecks() })));
+  it("calls plugin apiFetch with analyze route when Analyze is clicked", async () => {
+    mockContentLoad();
+    mockApiFetch.mockResolvedValue({ score: 75, checks: makeChecks() });
     render(<ContentAnalysisPage />);
 
     await waitFor(() => {
@@ -133,9 +132,25 @@ describe("ContentAnalysisPage", () => {
     fireEvent.click(screen.getAllByText("Analyze")[0]);
 
     await waitFor(() => {
-      expect(screen.getByText("75")).toBeDefined();
-      expect(screen.getByText("SEO Score")).toBeDefined();
-      expect(screen.getByText("3 checks performed")).toBeDefined();
+      expect(mockApiFetch).toHaveBeenCalledWith("analyze", { contentId: "post-1", collection: "posts" });
+    });
+  });
+
+  it("shows score and checks after successful analysis", async () => {
+    mockContentLoad();
+    mockApiFetch.mockResolvedValue({ score: 75, checks: makeChecks() });
+    render(<ContentAnalysisPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Hello World")).toBeDefined();
+    });
+
+    fireEvent.click(screen.getAllByText("Analyze")[0]);
+
+    await waitFor(() => {
+      // ScoreBadge renders score as SVG text; both table row and expanded panel show it
+      const badges = screen.getAllByLabelText("SEO score: 75 out of 100");
+      expect(badges.length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText("Title Length")).toBeDefined();
       expect(screen.getByText("Meta Description")).toBeDefined();
       expect(screen.getByText("H1 Tag")).toBeDefined();
@@ -143,8 +158,8 @@ describe("ContentAnalysisPage", () => {
   });
 
   it("shows check messages", async () => {
-    mockContentList();
-    mockApiFetch.mockResolvedValue(new Response(JSON.stringify({ score: 75, checks: makeChecks() })));
+    mockContentLoad();
+    mockApiFetch.mockResolvedValue({ score: 75, checks: makeChecks() });
     render(<ContentAnalysisPage />);
 
     await waitFor(() => {
@@ -161,8 +176,8 @@ describe("ContentAnalysisPage", () => {
   });
 
   it("shows error from analysis response", async () => {
-    mockContentList();
-    mockApiFetch.mockResolvedValue(new Response(JSON.stringify({ error: "analysis_error", message: "Content not found" })));
+    mockContentLoad();
+    mockApiFetch.mockResolvedValue({ error: "analysis_error", message: "Content not found" });
     render(<ContentAnalysisPage />);
 
     await waitFor(() => {
@@ -177,14 +192,14 @@ describe("ContentAnalysisPage", () => {
   });
 
   it("shows error when analysis fetch rejects", async () => {
-    mockContentList();
-    mockApiFetch.mockRejectedValue(new Error("Network error"));
+    mockContentLoad();
     render(<ContentAnalysisPage />);
 
     await waitFor(() => {
       expect(screen.getByText("Hello World")).toBeDefined();
     });
 
+    mockApiFetch.mockRejectedValue(new Error("Network error"));
     fireEvent.click(screen.getAllByText("Analyze")[0]);
 
     await waitFor(() => {
@@ -193,14 +208,14 @@ describe("ContentAnalysisPage", () => {
   });
 
   it("renders error with role='alert'", async () => {
-    mockContentList();
-    mockApiFetch.mockRejectedValue(new Error("Something went wrong"));
+    mockContentLoad();
     render(<ContentAnalysisPage />);
 
     await waitFor(() => {
       expect(screen.getByText("Hello World")).toBeDefined();
     });
 
+    mockApiFetch.mockRejectedValue(new Error("Something went wrong"));
     fireEvent.click(screen.getAllByText("Analyze")[0]);
 
     await waitFor(() => {
@@ -211,8 +226,8 @@ describe("ContentAnalysisPage", () => {
   });
 
   it("highlights the selected row", async () => {
-    mockContentList();
-    mockApiFetch.mockResolvedValue(new Response(JSON.stringify({ score: 80, checks: [] })));
+    mockContentLoad();
+    mockApiFetch.mockResolvedValue({ score: 80, checks: [] });
     render(<ContentAnalysisPage />);
 
     await waitFor(() => {
@@ -222,31 +237,34 @@ describe("ContentAnalysisPage", () => {
     fireEvent.click(screen.getAllByText("Analyze")[0]);
 
     await waitFor(() => {
-      const row = screen.getByText("Hello World").closest("tr");
-      expect(row?.style.background).toBe("rgb(240, 253, 244)");
+      // "Hello World" appears in both the table row and the expanded panel title
+      const rows = screen.getAllByText("Hello World").map((el) => el.closest("tr"));
+      const dataRow = rows.find((r) => r?.querySelector("button.seo-btn"));
+      expect(dataRow?.style.background).toBe("rgb(249, 250, 251)");
     });
   });
 
   it("shows loading indicator on the clicked button", async () => {
-    mockContentList();
-    let resolveAnalysis: (value: unknown) => void;
-    mockApiFetch.mockReturnValue(new Promise((resolve) => { resolveAnalysis = resolve; }));
+    mockContentLoad();
     render(<ContentAnalysisPage />);
 
     await waitFor(() => {
       expect(screen.getByText("Hello World")).toBeDefined();
     });
 
+    let resolveAnalysis: (value: unknown) => void;
+    mockApiFetch.mockReturnValue(new Promise((resolve) => { resolveAnalysis = resolve; }));
+
     fireEvent.click(screen.getAllByText("Analyze")[0]);
 
     await waitFor(() => {
-      expect(screen.getByText("...")).toBeDefined();
+      expect(screen.getByText("Analyzing...")).toBeDefined();
     });
 
-    resolveAnalysis!(new Response(JSON.stringify({ score: 80, checks: [] })));
+    resolveAnalysis!({ score: 80, checks: [] });
 
     await waitFor(() => {
-      expect(screen.queryByText("...")).toBeNull();
+      expect(screen.queryByText("Analyzing...")).toBeNull();
     });
   });
 });

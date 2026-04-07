@@ -1,5 +1,23 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { colors, fontSize } from "../tokens.js";
+import { globalStyles } from "../styles.js";
+
+let stylesInjected = false;
+
+export function SeoStyleProvider({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    if (stylesInjected) return;
+    const id = "emdash-seo-styles";
+    if (document.getElementById(id)) { stylesInjected = true; return; }
+    const style = document.createElement("style");
+    style.id = id;
+    style.textContent = globalStyles;
+    document.head.appendChild(style);
+    stylesInjected = true;
+  }, []);
+
+  return <div className="seo-plugin">{children}</div>;
+}
 
 export function EmptyState({ title, description }: { title: string; description: string }) {
   return (
